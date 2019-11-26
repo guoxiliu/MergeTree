@@ -1,3 +1,6 @@
+#ifndef MERGETREE_H
+#define MERGETREE_H
+
 #include <vector>
 #include <vtkSmartPointer.h>
 #include <vtkUnstructuredGrid.h>
@@ -51,3 +54,5 @@ private:
     }
   }
 };
+
+#endif
