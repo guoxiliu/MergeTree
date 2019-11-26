@@ -6,7 +6,8 @@ MergeTree::MergeTree(vtkSmartPointer<vtkUnstructuredGrid> p):usgrid(p),group(vec
 int MergeTree::findGroup(int i){
     if(group[i] == -1)
       return i;
-    return findGroup(group[i]);
+    group[i] = findGroup(group[i]);
+    return group[i];
 }
 
 void MergeTree::unionGroup(int x, int y){
@@ -17,5 +18,7 @@ void MergeTree::unionGroup(int x, int y){
     }
 }
 
+void MergeTree::setupData(){
 
+}
 

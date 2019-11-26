@@ -24,7 +24,7 @@ class MergeTree{
 public:
   struct Comp{
     bool operator(int lhs, int rhs) const{
-      return scalar[lhs] < scalar[rhs];
+      return scalarValue[lhs] < scalarValue[rhs];
     }
   };
 public:
@@ -33,7 +33,7 @@ public:
   void output();
 
 protected:
-  void setupData(); // initialize data from vtkUnstructedGrid
+  void setupData(); // initialize data from vtkUnstructedGrid should include scalarValue, neighbors
   //void orderVertices(); // order vertices by scalarValue
 
 public:
@@ -50,7 +50,7 @@ protected:
   vtkSmartPointer<vtkUnstructuredGrid> usgrid;    // Unstructed grid
   vector<SuperArc> arcs;    // Save the point set?
   vector<double> scalarValue; // store the scalar function value
-  map<int,double,Comp> neighbors; //store points id & its scalar value, naturally ordered
+  map<int,vector<int>,Comp> neighbors; //store points id & its neighbors, naturally ordered
 };
 
 #endif
