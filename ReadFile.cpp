@@ -1,4 +1,4 @@
-#include "mergetree.h"
+#include "MergeTree.h"
 #include <vtkSmartPointer.h>
 #include <vtkXMLImageDataReader.h>
 #include <vtkXMLUnstructuredGridReader.h>

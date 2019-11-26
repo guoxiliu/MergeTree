@@ -15,10 +15,14 @@ ifeq ($(UNAME_S), Darwin)
 	LDFLAGS += -lvtkCommonCore-8.2 -lvtkCommonExecutionModel-8.2 -lvtkIOXML-8.2 -lvtkCommonDataModel-8.2
 endif
 
-PROJECT = ReadFile
+main: ReadFile.o MergeTree.o
+	${CXX} ${CFLAGS} ReadFile.o MergeTree.o ${IDFLAGS} ${LDFLAGS} -o bin/main
 
-${PROJECT}: ${PROJECT}.cpp
-	${CXX} ${CFLAGS} -o bin/${PROJECT} ${PROJECT}.cpp ${IDFLAGS} ${LDFLAGS}
+ReadFile.o: MergeTree.o ReadFile.cpp
+	${CXX} ${CFLAGS} ReadFile.cpp MergeTree.o ${IDFLAGS} ${LDFLAGS}
+
+MergeTree.o: MergeTree.cpp MergeTree.h
+	${CXX} ${CFLAGS} MergeTree.cpp ${IDFLAGS} ${LDFLAGS}
 
 clean:
-	rm -rf bin/*
+	rm -rf *.o bin/* 
