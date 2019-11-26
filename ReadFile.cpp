@@ -1,3 +1,4 @@
+#include "mergetree.h"
 #include <vtkSmartPointer.h>
 #include <vtkXMLImageDataReader.h>
 #include <vtkXMLUnstructuredGridReader.h>
@@ -31,8 +32,8 @@ int main ( int argc, char *argv[] )
   cout << "There are " << pointNum << " points in the triangulation.\n";
 
   // TODO: Create the merge tree here.
-
-
+  MergeTree testTree(reader->GetOutput());
+  testTree.build();
 
   // TODO: Test the queries here.
 
