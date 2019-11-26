@@ -2,6 +2,7 @@
 #define MERGETREE_H
 
 #include <vector>
+#include <map>
 #include <vtkSmartPointer.h>
 #include <vtkUnstructuredGrid.h>
 
@@ -19,40 +20,37 @@ class SuperArc{
  * captures the evolution of the superlevel or sublevel sets.
  */ 
 class MergeTree{
+
 public:
-  MergeTree(vtkSmartPointer<vtkUnstructuredGrid> p){
-    usgrid = p;
-    group = vector<int>(p->GetNumberOfPoints(), -1);
-  }
+  struct Comp{
+    bool operator(int lhs, int rhs) const{
+      return scalar[lhs] < scalar[rhs];
+    }
+  };
+public:
+  MergeTree(vtkSmartPointer<vtkUnstructuredGrid>);
+  void computeMergeTree();//wrap function for compute JT, ST and CT
+  void output();
 
-  // TODO: Implement the topological queries.
+protected:
+  void setupData(); // initialize data from vtkUnstructedGrid
+  //void orderVertices(); // order vertices by scalarValue
 
-  // TODO: Maxima query
+public:
 
-  // TODO: Component maximum query
+private:
+  void computeJoinTree();
+  void computeSplitTree();
 
+  int findGroup(int); // Find the group id of a given vertex id.
+  void unionGroup(int, int);  // Do union of two groups.
 
 protected:
   vector<int> group;    // Used for Union-Find algorithm
   vtkSmartPointer<vtkUnstructuredGrid> usgrid;    // Unstructed grid
   vector<SuperArc> arcs;    // Save the point set?
-
-private:
-  // Find the group id of a given vertex id.
-  int findGroup(int i){
-    if(group[i] == -1)
-      return i;
-    return findGroup(group[i]);
-  }
-
-  // Do union of two groups.
-  void unionGroup(int x, int y){
-    int xset = findGroup(x);
-    int yset = findGroup(y);
-    if(xset != yset){
-      group[xset] = yset;
-    }
-  }
+  vector<double> scalarValue; // store the scalar function value
+  map<int,double,Comp> neighbors; //store points id & its scalar value, naturally ordered
 };
 
 #endif
