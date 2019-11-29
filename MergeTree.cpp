@@ -18,14 +18,14 @@ int MergeTree::findSet(vtkIdType i){
     return Set[i];
 }
 
-int MergeTree:findSetMax(vtkIdType i){
+int MergeTree::findSetMax(vtkIdType i){
   if(SetMax[i] == i)
       return i;
     SetMax[i] = findSet(SetMax[i]);
     return SetMax[i];
 }
 
-int MergeTree:findSetMin(vtkIdType i){
+int MergeTree::findSetMin(vtkIdType i){
   if(SetMin[i] == i)
       return i;
     SetMin[i] = findSet(SetMin[i]);
@@ -104,17 +104,15 @@ int MergeTree::build(){
 // Construct the join tree.
 void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
 
-  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
-  float *scalarData = (float *)scalarfield->GetVoidPointer(0);
   // record [vtkId] = pos in sortedindices
-  array<int,sortedIndices.size()> sortedIds;
-  for(int i = 0; i < sortedIndices.size(); ++i){
+  vector<int> sortedIds(sortedIndices.size());
+  for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     sortedIds[sortedIndices[i]] = i;
   }
   iota(Set.begin(), Set.end(), 0);
   iota(SetMax.begin(), SetMax.end(), 0);
   iota(SetMin.begin(), SetMin.end(), 0);
-  for(int i = 0; i<sortedIndices.size(); ++i){
+  for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     node *ai = new node(i);
     joinTree.push_back(ai);
     graph[i]->jNode = ai;
@@ -122,11 +120,11 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
     vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(usgrid, sortedIndices[i]);
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds();++adj){
       // index of adj in sortedIndices
-      vtkIdType j = sortedIds[connectedVertices->GetId(adj)]];
+      vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
       if(j < i && findSet(i) != findSet(j)){
           int k = findSetMax(j);
           graph[k]->jNode->parent = ai;
-          ai->numChildren += 1
+          ai->numChildren += 1;
           unionSet(i,j);
       }
     }
@@ -135,11 +133,9 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
 
 // Construct the split tree.
 void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
-  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
-  float *scalarData = (float *)scalarfield->GetVoidPointer(0);
   // record [vtkId] = pos in sortedindices
-  array<int,sortedIndices.size()> sortedIds;
-  for(int i = 0; i < sortedIndices.size(); ++i){
+  vector<int> sortedIds(sortedIndices.size());
+  for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     sortedIds[sortedIndices[i]] = i;
   }
 
@@ -157,20 +153,20 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
       vtkIdType j = sortedIndices[connectedVertices->GetId(adj)];
       if(j > i && findSet(i) != findSet(j)){
         int k = findSetMin(j);
-        graph[k]->sNode->parent = bi；
+        graph[k]->sNode->parent = bi;
         bi->numChildren += 1;
         unionSet(i,j);
       }
     }
   }
   // reverse the order of split nodes from 0 to n-1
-  reverse(splitTree.begin(). splitTree.end());
+  reverse(splitTree.begin(), splitTree.end());
 }
 
 // Merge the split and join tree.
 void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree){
   queue<int> Q;
-  for(int i = 0; i<usgrid->GetNumberOfPoints(); ++i){
+  for(int i = 0; i < usgrid->GetNumberOfPoints(); ++i){
     node *ci = new node(i);
     mergeTree.push_back(ci);
     if(joinTree[i]->numChildren + splitTree[i]->numChildren == 1){
@@ -178,8 +174,9 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
     }
   }
 
-  while (Q.size() > 1){}
-    int i = Q.pop();
+  while (Q.size() > 1){
+    int i = Q.back();
+    Q.pop();
     int k;
     if(joinTree[i]->numChildren == 0){
       k = joinTree[i]->parent->idx;
@@ -204,10 +201,11 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
       Q.push(k);
     }
     cout<< "MergeTree is built" << endl;
+  }
 }
 
 
-vtkSmartPointer<vtkIdList> MergeTree::getConnectVertices(vtkSmartPointer<vtkUnstructuredGrid> usgrid, int id){
+vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid> usgrid, int id){
   vtkSmartPointer<vtkIdList> connectedVertices = vtkSmartPointer<vtkIdList>::New();
 
   // get all cells that vertex 'id' is a part of 

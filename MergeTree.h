@@ -5,7 +5,6 @@
 #include <vector>
 #include <queue>
 #include <set>
-#include <array>
 #include <algorithm>
 #include <numeric>
 #include <vtkIdList.h>
@@ -15,20 +14,6 @@
 
 using namespace std;
 
-// TODO: Super Arc class.
-/* class SuperArc{
-  public: 
-    SuperArc(){ vertexIds = vector<vtkIdType>(); }
-    inline vector<vtkIdType> getVertexIds(){
-      return vertexIds;
-    }
-    inline void addVertex(vtkIdType id){
-      vertexIds.push_back(id);
-    }
-  
-  private:
-    vector<vtkIdType> vertexIds; 
-}; */
 
 //define the tree node in merge tree algorithm 
 struct node{
@@ -40,10 +25,10 @@ struct node{
 
 // define graph node used in constructJoin and construcSplit
 struct vNode{
-  vNode(){}
   node* jNode;
   node* sNode;
-}
+};
+
 /**
  * Merge Tree Class.
  * The merge tree is created by combining join tree and split tree, which 
@@ -51,11 +36,6 @@ struct vNode{
  */ 
 class MergeTree{
   public:
-    // struct Comp{
-    //   bool operator()(int lhs, int rhs) const{
-    //     return scalarValue[lhs] < scalarValue[rhs];
-    //   }
-    // };
     MergeTree(vtkUnstructuredGrid *p);
     int build();    // Wrap function for compute JT, ST and CT
     void output();
@@ -64,7 +44,7 @@ class MergeTree{
     vector<int> Set;    // Used for Union-Find algorithm
     vtkUnstructuredGrid* usgrid;    // Unstructed grid
     vector<int> SetMin;
-    vector<int> SetMax
+    vector<int> SetMax;
     //vector<SuperArc> arcs;    // Save the point set?
     // vector<double> scalarValue; // store the scalar function value
     // map<int,vector<int>,Comp> neighbors; //store points id & its neighbors, naturally ordered
