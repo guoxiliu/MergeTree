@@ -36,21 +36,22 @@ int main ( int argc, char *argv[] )
 
   // Partition the dataset 
   vector<vector<vtkIdType>> regions;
-  vector<vtkIdType> globalBridgeSet;
+  set<vtkIdType> globalBridgeSet;
   decompose(threadNum, reader->GetOutput(), regions, globalBridgeSet);
+  printf("Size of global bridge set: %lu\n", globalBridgeSet.size());
 
   // OpenMP test
-  omp_set_num_threads(threadNum);
-  #pragma omp parallel
-  {
-    int nthreads, tid;
-    tid = omp_get_thread_num();
-    printf("Thread id = %d\n", tid);
-    if(tid == 0){
-      nthreads = omp_get_num_threads();
-      printf("Number of threads = %d\n", nthreads);
-    }
-  }
+  // omp_set_num_threads(threadNum);
+  // #pragma omp parallel
+  // {
+  //   int nthreads, tid;
+  //   tid = omp_get_thread_num();
+  //   printf("Thread id = %d\n", tid);
+  //   if(tid == 0){
+  //     nthreads = omp_get_num_threads();
+  //     printf("Number of threads = %d\n", nthreads);
+  //   }
+  // }
 
   return EXIT_SUCCESS;
 }
