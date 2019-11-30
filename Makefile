@@ -1,8 +1,6 @@
 
 CXX = g++
-CFLAGS = -std=c++11 -g -Wall
-IDFLAGS = 
-LDFLAGS = 
+CFLAGS = -std=c++11 -g -Wall -fopenmp
 
 # Detect the operating system
 UNAME_S := $(shell uname -s)
@@ -15,8 +13,13 @@ ifeq ($(UNAME_S), Darwin)
 	LDFLAGS += -lvtkCommonCore-8.2 -lvtkCommonExecutionModel-8.2 -lvtkIOXML-8.2 -lvtkCommonDataModel-8.2
 endif
 
-main: Main.cpp MergeTree.cpp
-	${CXX} ${CFLAGS} Main.cpp MergeTree.cpp ${IDFLAGS} ${LDFLAGS} -o bin/main
+all: serial parallel
+
+serial: SerialMain.cpp MergeTree.cpp
+	${CXX} ${CFLAGS} $^ ${IDFLAGS} ${LDFLAGS} -o bin/$@
+
+parallel: ParallelMain.cpp MergeTree.cpp
+	${CXX} ${CFLAGS} $^ ${IDFLAGS} ${LDFLAGS} -o bin/$@
 
 clean:
 	rm -rf *.o bin/* 
