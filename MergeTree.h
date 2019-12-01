@@ -21,10 +21,13 @@ struct node{
   int idx;
   int numChildren;
   node* parent;
+  vector<node*> children;
 };
 
 // define graph node used in constructJoin and construcSplit
 struct vNode{
+  vNode(){
+  }
   node* jNode;
   node* sNode;
 };
@@ -41,7 +44,7 @@ class MergeTree{
     void output();
 
   protected:
-    vector<int> Set;    // Used for Union-Find algorithm
+    //vector<int> Set;    // Used for Union-Find algorithm
     vtkUnstructuredGrid* usgrid;    // Unstructed grid
     vector<int> SetMin;
     vector<int> SetMax;
@@ -51,8 +54,9 @@ class MergeTree{
 
   private:
     vector<vtkIdType> argsort(); // Sort the vertex ids based on the scalar values
-    int findSet(vtkIdType); // Find the group id of a given vertex id.
-    void unionSet(vtkIdType, vtkIdType);  // Do union of two groups.
+    //int findSet(vtkIdType); // Find the group id of a given vertex id.
+    void unionSetMax(vtkIdType, vtkIdType);  // Do union of two groups.
+    void unionSetMin(vtkIdType, vtkIdType);
     int findSetMax(vtkIdType); // get the maximum element of a set
     int findSetMin(vtkIdType); // get the minimum element of a set
 
