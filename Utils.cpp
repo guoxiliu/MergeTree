@@ -14,7 +14,7 @@ int findSet(vector<vtkIdType> &group, vtkIdType i){
 /**
  * Do union of two sets.
  */ 
-void unionSet(vector<int> &group, vtkIdType i, vtkIdType j){
+void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
   
   int iset = findSet(group, i);
   int jset = findSet(group, j);
