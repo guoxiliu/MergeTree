@@ -14,16 +14,25 @@ int findSet(vector<vtkIdType> &group, vtkIdType i){
 /**
  * Do union of two sets.
  */ 
-void unionSet(vector<vtkIdType> &group, vtkIdType x, vtkIdType y){
-  // make the root with higher scalar value
-  int xset = findSet(group, x);
-  int yset = findSet(group, y);
+// Do union of two sets.
+void MergeTree::unionSet(vector<int> &group, vtkIdType i, vtkIdType j){
   
-  if(xset < yset){
-    group[xset] = yset;
-  }else{
-    group[yset] = xset;
-  }
+  int iset = findSet(group, i);
+  int jset = findSet(group, j);
+  
+  if(i > j){ // union for SetMax
+    if(iset < jset){
+      group[iset] = jset;
+    }else{
+      group[jset] = iset;
+    }
+  }else{ // union for SetMin
+    if(iset < jset){
+      group[jset] = iset;
+    }else{
+      group[iset] = jset;
+    }
+  } 
 }
 
 /**
