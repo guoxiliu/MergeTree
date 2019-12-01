@@ -40,7 +40,10 @@ struct vNode{
 class MergeTree{
   public:
     MergeTree(vtkUnstructuredGrid *p);
-    int build();    // Wrap function for compute JT, ST and CT
+    int build();  // Wrap function for compute JT, ST and CT
+    static int findSet(vector<int> &, vtkIdType); // Find the set id of a given vertex id
+    static void unionSet(vector<int> &, vtkIdType, vtkIdType);  // Do union of two sets
+    static vector<vtkIdType> argsort(vector<vtkIdType>, vtkUnstructuredGrid *);
     void output();
 
   protected:
@@ -49,17 +52,11 @@ class MergeTree{
     vector<int> SetMin;
     vector<int> SetMax;
     //vector<SuperArc> arcs;    // Save the point set?
-    // vector<double> scalarValue; // store the scalar function value
+    // vector<double> scalarValue;  // store the scalar function value
     // map<int,vector<int>,Comp> neighbors; //store points id & its neighbors, naturally ordered
 
   private:
-    vector<vtkIdType> argsort(); // Sort the vertex ids based on the scalar values
-    //int findSet(vtkIdType); // Find the group id of a given vertex id.
-    void unionSetMax(vtkIdType, vtkIdType);  // Do union of two groups.
-    void unionSetMin(vtkIdType, vtkIdType);
-    int findSetMax(vtkIdType); // get the maximum element of a set
-    int findSetMin(vtkIdType); // get the minimum element of a set
-
+    vector<vtkIdType> argsort();  // Sort the vertex ids based on the scalar values
     vtkSmartPointer<vtkIdList> getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid>, int);
 
     void constructJoin(vector<vtkIdType>&); // Construct the join tree.

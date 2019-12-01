@@ -1,6 +1,5 @@
 #include "MergeTree.h"
 
-
 // Constructor.
 MergeTree::MergeTree(vtkUnstructuredGrid *p){
   usgrid = p;
@@ -10,64 +9,48 @@ MergeTree::MergeTree(vtkUnstructuredGrid *p){
   //graph = vector<vNode*>(p->GetNumberOfPoints()， new vNode());
 }
 
-// Find the Set id of a given vertex id.
-
-int MergeTree::findSetMax(vtkIdType i){
-  if(SetMax[i] == i)
-      return i;
-    SetMax[i] = findSetMax(SetMax[i]);
-    return SetMax[i];
+// Find the set id of a given vertex id.
+int MergeTree::findSet(vector<int> &group, vtkIdType i){
+  if(group[i] == i)
+    return i;
+  group[i] = findSet(group, group[i]);
+  return group[i];
 }
 
-int MergeTree::findSetMin(vtkIdType i){
-  if(SetMin[i] == i)
-      return i;
-    SetMin[i] = findSetMin(SetMin[i]);
-    return SetMin[i];
-}
-
-// Do union of two Sets.
-void MergeTree::unionSetMax(vtkIdType x, vtkIdType y){
-    // make the root with higher scalar value
-    int xset = findSetMax(x);
-    int yset = findSetMax(y);
-   
-    if(xset < yset){
-      SetMax[xset] = yset;
-    }else{
-      SetMax[yset] = xset;
-    } 
-    
-}
-
-void MergeTree::unionSetMin(vtkIdType x, vtkIdType y){
-    // make the root with lower scalar value
-    int xset = findSetMin(x);
-    int yset = findSetMin(y);
-    
-    if(xset < yset){
-      SetMin[yset] = xset;
-    }else{
-      SetMin[xset] = yset;
-    } 
+// Do union of two sets.
+void MergeTree::unionSet(vector<int> &group, vtkIdType x, vtkIdType y){
+  // make the root with higher scalar value
+  int xset = findSet(group, x);
+  int yset = findSet(group, y);
+  
+  if(xset < yset){
+    group[xset] = yset;
+  }else{
+    group[yset] = xset;
+  }
 }
 
 // Sort the scalar values while keeping track of the indices.
 vector<vtkIdType> MergeTree::argsort(){
   vector<vtkIdType> indices(usgrid->GetNumberOfPoints());
   iota(indices.begin(), indices.end(), 0);
+  return argsort(indices, usgrid);
+}
+
+// Sort the scalar values while keeping track of the indices.
+vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet, vtkUnstructuredGrid *usgrid){
   vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
   switch(scalarfield->GetDataType()){
     case VTK_FLOAT:
     {
       float *scalarData = (float *)scalarfield->GetVoidPointer(0);
-      sort(indices.begin(), indices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+      sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
       break;
     }
     case VTK_DOUBLE:
     {
       double *scalarData = (double *)scalarfield->GetVoidPointer(0);
-      sort(indices.begin(), indices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+      sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
       break;
     }
     default:
@@ -77,7 +60,7 @@ vector<vtkIdType> MergeTree::argsort(){
     }
   }
 
-  return indices;
+  return vertexSet;
 }
 
 // Build the merge tree.
@@ -110,12 +93,12 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds();++adj){
       // index of adj in sortedIndices
       vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
-      if(j < i && findSetMax(i) != findSetMax(j)){
-        int k = findSetMax(j);
+      if(j < i && findSet(SetMax, i) != findSet(SetMax, j)){
+        int k = findSet(SetMax, j);
         graph[k]->jNode->parent = ai;
         ai->children.push_back(graph[k]->jNode);
         ai->numChildren += 1;
-        unionSetMax(i,j);
+        unionSet(SetMax, i, j);
       }
     }
   }
@@ -141,12 +124,12 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds(); ++adj){
       // index of adj in sortedIndices
       vtkIdType j = sortedIndices[connectedVertices->GetId(adj)];
-      if(j > i && findSetMin(i) != findSetMin(j)){
-        int k = findSetMin(j);
+      if(j > i && findSet(SetMin, i) != findSet(SetMin, j)){
+        int k = findSet(SetMin, j);
         graph[k]->sNode->parent = bi;
         bi->children.push_back(graph[k]->sNode);
         bi->numChildren += 1;
-        unionSetMin(i,j);
+        unionSet(SetMin, i,j);
       }
     }
   }
@@ -246,6 +229,7 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUn
   // get all cells that vertex 'id' is a part of 
   vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
   usgrid->GetPointCells(id,cellIdList);
+
 
   set<vtkIdType> neighbors;
   for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds();++i){

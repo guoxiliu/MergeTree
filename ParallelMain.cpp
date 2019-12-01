@@ -38,7 +38,10 @@ int main ( int argc, char *argv[] )
   vector<vector<vtkIdType>> regions;
   set<vtkIdType> globalBridgeSet;
   decompose(threadNum, reader->GetOutput(), regions, globalBridgeSet);
-  printf("Size of global bridge set: %lu\n", globalBridgeSet.size());
+  printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
+
+  vector<vtkIdType> sortedIndices = MergeTree::argsort(regions[0], reader->GetOutput());
+
 
   // OpenMP test
   // omp_set_num_threads(threadNum);

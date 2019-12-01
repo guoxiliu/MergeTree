@@ -86,7 +86,7 @@ void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdT
     vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
     usgrid->GetCellPoints(i, cellIds);
     vtkIdType cellSize = cellIds->GetNumberOfIds();
-    int regionIds[cellSize];
+    vector<int> regionIds(cellSize);
     for(vtkIdType j = 0; j < cellSize; j++){
       regionIds[j] = vertexRegions[cellIds->GetId(j)];
     }
@@ -102,6 +102,14 @@ void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdT
 }
 
 
+/**
+ * Get the reduced bridge set.
+ */ 
+set<vtkIdType> getReducedBrdigeSet(set<vtkIdType> bridgeSet, vector<vtkIdType> vertexSet){
+  set<vtkIdType> reducedBS;
+  
+  return reducedBS;
+}
 
 
 #endif
