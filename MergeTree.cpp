@@ -13,17 +13,17 @@ MergeTree::MergeTree(vtkUnstructuredGrid *p){
 vector<vtkIdType> MergeTree::argsort(){
   vector<vtkIdType> indices(usgrid->GetNumberOfPoints());
   iota(indices.begin(), indices.end(), 0);
-  return argsort(indices);
+  return argsort(indices, usgrid);
 }
 
 // Sort the scalar values while keeping track of the indices.
-vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet, bool increasing){
-  //vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
+vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet,vtkUnstructuredGrid* usgrid, bool increasing){
+  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
   switch(scalarfield->GetDataType()){
     case VTK_FLOAT:
     {
-      //float *scalarData = (float *)scalarfield->GetVoidPointer(0);
-      float *scalardata = (float*) getScalar();
+      float *scalarData = (float *)scalarfield->GetVoidPointer(0);
+      //float *scalarData = (float*) getScalar();
       if(increasing){
         sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
       }else{
@@ -33,8 +33,8 @@ vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet, bool increasin
     }
     case VTK_DOUBLE:
     {
-      //double *scalarData = (double *)scalarfield->GetVoidPointer(0);
-      double* scalarData = (double*) getScalar();
+      double *scalarData = (double *)scalarfield->GetVoidPointer(0);
+      //double* scalarData = (double*) getScalar();
       if(increasing){
         sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
       }else{
@@ -257,7 +257,7 @@ vector<vtkIdType> MergeTree::MaximaQuery(){
 }
 
 // return nodeId within the superlevel component  that has maximum scalar
-vtkIdType MergeTree::ComponentMaximumQuery(float& level, vtkIdType v){
+vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v,float& level){
   vector<vtkIdType> sortedIndices = argsort();
   vector<int> sortedIds(sortedIndices.size());
   for(unsigned int i = 0; i < sortedIndices.size(); ++i){
@@ -294,8 +294,8 @@ vtkIdType MergeTree::ComponentMaximumQuery(float& level, vtkIdType v){
   return sortedIndices[compMax];
 }
 
-void* MergeTree::scalarData(){
-  vtkDataArray *scalarFiled = usgrid->usgrid->GetPointData()->GetArray(0);
+void* MergeTree::getScalar(){
+  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
   void *scalarData = scalarfield->GetVoidPointer(0);
   return scalarData;
 }
