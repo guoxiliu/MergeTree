@@ -1,4 +1,3 @@
-#include "Utils.h"
 #include "MergeTree.h"
 #include <omp.h>
 #include <vtkSmartPointer.h>
@@ -35,13 +34,25 @@ int main ( int argc, char *argv[] )
   printf("There are %lld points in the unstructed grid.\n", pointNum);
 
   // Partition the dataset 
+  vtkUnstructuredGrid *usgrid = reader->GetOutput();
+  usgrid->BuildLinks();
   vector<vector<vtkIdType>> regions;
   set<vtkIdType> globalBridgeSet;
-  decompose(threadNum, reader->GetOutput(), regions, globalBridgeSet);
-  printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
+  decompose(threadNum, usgrid, regions, globalBridgeSet);
+  
+  // Test the domain decomposition and global bridge set
+  // for(unsigned i = 0; i < regions[0].size(); i++){
+  //   printf("[%lld], ", regions[0][i]);
+  // }
+  // printf("\n");
+  // printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
 
-  vector<vtkIdType> sortedIndices = MergeTree::argsort(regions[0], reader->GetOutput());
-
+  // Test argsort function
+  // vector<vtkIdType> sortedIndices = MergeTree::argsort(regions[0], usgrid, false);
+  // float *scalars = (float *)(usgrid->GetPointData()->GetArray(0)->GetVoidPointer(0));
+  // for (unsigned int i = 0; i < sortedIndices.size(); i++) {
+  //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
+  // }
 
   // OpenMP test
   // omp_set_num_threads(threadNum);

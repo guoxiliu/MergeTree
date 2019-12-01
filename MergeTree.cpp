@@ -4,30 +4,9 @@
 MergeTree::MergeTree(vtkUnstructuredGrid *p){
   usgrid = p;
   //Set = vector<int>(p->GetNumberOfPoints());
-  SetMax = vector<int>(p->GetNumberOfPoints());
-  SetMin = vector<int>(p->GetNumberOfPoints());
+  SetMax = vector<vtkIdType>(p->GetNumberOfPoints());
+  SetMin = vector<vtkIdType>(p->GetNumberOfPoints());
   //graph = vector<vNode*>(p->GetNumberOfPoints()， new vNode());
-}
-
-// Find the set id of a given vertex id.
-int MergeTree::findSet(vector<int> &group, vtkIdType i){
-  if(group[i] == i)
-    return i;
-  group[i] = findSet(group, group[i]);
-  return group[i];
-}
-
-// Do union of two sets.
-void MergeTree::unionSet(vector<int> &group, vtkIdType x, vtkIdType y){
-  // make the root with higher scalar value
-  int xset = findSet(group, x);
-  int yset = findSet(group, y);
-  
-  if(xset < yset){
-    group[xset] = yset;
-  }else{
-    group[yset] = xset;
-  }
 }
 
 // Sort the scalar values while keeping track of the indices.
@@ -38,19 +17,27 @@ vector<vtkIdType> MergeTree::argsort(){
 }
 
 // Sort the scalar values while keeping track of the indices.
-vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet, vtkUnstructuredGrid *usgrid){
+vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet, vtkUnstructuredGrid *usgrid, bool increasing){
   vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
   switch(scalarfield->GetDataType()){
     case VTK_FLOAT:
     {
       float *scalarData = (float *)scalarfield->GetVoidPointer(0);
-      sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+      if(increasing){
+        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+      }else{
+        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
+      }
       break;
     }
     case VTK_DOUBLE:
     {
       double *scalarData = (double *)scalarfield->GetVoidPointer(0);
-      sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+      if(increasing){
+        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+      }else{
+        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
+      }
       break;
     }
     default:

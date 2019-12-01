@@ -15,10 +15,10 @@ endif
 
 all: serial parallel
 
-serial: SerialMain.cpp MergeTree.cpp
+serial: SerialMain.cpp MergeTree.cpp Utils.cpp
 	${CXX} ${CFLAGS} $^ ${IDFLAGS} ${LDFLAGS} -o bin/$@
 
-parallel: ParallelMain.cpp MergeTree.cpp
+parallel: ParallelMain.cpp MergeTree.cpp Utils.cpp
 	${CXX} ${CFLAGS} $^ ${IDFLAGS} ${LDFLAGS} -o bin/$@
 
 clean:
