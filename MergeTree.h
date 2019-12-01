@@ -35,7 +35,7 @@ class MergeTree{
 
     vector<vtkIdType> MaximaQuery();// return maxima points in the simplicial 
     vtkIdType ComponentMaximumQuery(vtkIdType&, float&); // return nodeId within the superlevel component  that has maximum scalar
-
+    static void* getScalar(vtkUnstructuredGrid*);
   protected:
     vtkUnstructuredGrid* usgrid;  // Unstructed grid
     vector<vtkIdType> SetMin;
@@ -45,7 +45,7 @@ class MergeTree{
   private:
     vector<vtkIdType> argsort();  // Sort the vertex ids based on the scalar values
     vtkSmartPointer<vtkIdList> getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid>, int);
-    void* getScalar();
+    
 
     void constructJoin(vector<vtkIdType>&);   // Construct the join tree.
     void constructSplit(vector<vtkIdType>&);  // Construct the split tree.
