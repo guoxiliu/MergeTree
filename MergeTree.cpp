@@ -276,12 +276,12 @@ vtkIdType MergeTree::ComponentMaximumQuery(float& level, vtkIdType v){
     return v;
   }else{
     queue<node*> nodes;
-    queue.push(mergeTree[idx]);
+    nodes.push(mergeTree[idx]);
     while(nodes.size()){
       node* n = nodes.front();
       compMax = n->idx > compMax? n->idx: compMax;
       nodes.pop();
-      if(n->parent->idx >idx){
+      if(n->parent && n->parent->idx >idx){
         nodes.push(n->parent);
       }
       for(auto child : n->children){
