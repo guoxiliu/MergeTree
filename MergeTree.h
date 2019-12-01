@@ -45,7 +45,7 @@ class MergeTree{
   private:
     vector<vtkIdType> argsort();  // Sort the vertex ids based on the scalar values
     vtkSmartPointer<vtkIdList> getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid>, int);
-    float* getScalar();
+    void* getScalar();
 
     void constructJoin(vector<vtkIdType>&);   // Construct the join tree.
     void constructSplit(vector<vtkIdType>&);  // Construct the split tree.

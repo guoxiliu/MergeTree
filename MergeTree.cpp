@@ -266,7 +266,7 @@ vtkIdType MergeTree::ComponentMaximumQuery(float& level, vtkIdType v){
   
   int idx = sortedIds[v];
   int compMax = idx;
-  float* scalarData = getScalar();
+  float* scalarData = (float*) getScalar();
   if(scalarData[v] < level){
     // return bottom of superlevel  component
     for(auto id:sortedIndices){
@@ -294,8 +294,8 @@ vtkIdType MergeTree::ComponentMaximumQuery(float& level, vtkIdType v){
   return sortedIndices[compMax];
 }
 
-float* MergeTree::scalarData(){
+void* MergeTree::scalarData(){
   vtkDataArray *scalarFiled = usgrid->usgrid->GetPointData()->GetArray(0);
-  float *scalarData = (float *)scalarfield->GetVoidPointer(0);
+  void *scalarData = scalarfield->GetVoidPointer(0);
   return scalarData;
 }
