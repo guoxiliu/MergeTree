@@ -110,7 +110,7 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
     vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(usgrid, sortedIndices[i]);
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds(); ++adj){
       // index of adj in sortedIndices
-      vtkIdType j = sortedIndices[connectedVertices->GetId(adj)];
+      vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
       if(j > i && findSet(SetMin, i) != findSet(SetMin, j)){
         int k = findSet(SetMin, j);
         graph[k]->sNode->parent = bi;
@@ -205,8 +205,8 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
     if(joinTree[k]->numChildren + splitTree[k]->numChildren == 1){
       Q.push(k);
     }
-    cout<< "MergeTree is built" << endl;
   }
+  cout<< "MergeTree is built" << endl;
 }
 
 
