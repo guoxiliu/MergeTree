@@ -42,7 +42,7 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
     graph.push_back(new vNode());
     graph[i]->jNode = ai;
     // get the neighbors of ai
-    vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(usgrid, sortedIndices[i]);
+    vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(sortedIndices[i], sortedIndices);
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds();++adj){
       // index of adj in sortedIndices
       vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
@@ -74,7 +74,7 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
     splitTree.push_back(bi);
     graph[i]->sNode = bi;
     // get the neighbors of bi
-    vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(usgrid, sortedIndices[i]);
+    vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(sortedIndices[i], sortedIndices);
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds(); ++adj){
       // index of adj in sortedIndices
       vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
@@ -181,12 +181,12 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
 }
 
 // Get the neighbors of the given vertex.
-vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid> usgrid, int id){
+vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkIdType vertexId, const vector<vtkIdType> &vertexList){
   vtkSmartPointer<vtkIdList> connectedVertices = vtkSmartPointer<vtkIdList>::New();
 
   // get all cells that vertex 'id' is a part of 
   vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
-  usgrid->GetPointCells(id,cellIdList);
+  usgrid->GetPointCells(vertexId,cellIdList);
 
 
   set<vtkIdType> neighbors;
@@ -199,10 +199,15 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUn
       neighbors.insert(pointIdList->GetId(j));   
     }
   }
-  neighbors.erase(id);
+  neighbors.erase(vertexId);
+
+  // add the neighbors only in the given vertex set
+  set<vtkIdType> vertexSet(vertexList.begin(), vertexList.end());
   for(auto it = neighbors.begin(); it != neighbors.end(); ++it){
-    connectedVertices->InsertNextId(*it);
+    if(vertexSet.find(*it) != vertexSet.end())
+      connectedVertices->InsertNextId(*it);
   }
+
   return connectedVertices;
 }
 
@@ -210,8 +215,8 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUn
 vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &bridgeSet){
   // collect the higher end vertices from the bridge set
   set<vtkIdType> highEndVertices;
-  for(auto iter = bridgeSet.begin(); iter != bridgeSet.end(); iter++){
-    highEndVertices.insert(iter->second);   // the higher end vertex has the smaller scalar value
+  for(auto it = bridgeSet.begin(); it != bridgeSet.end(); it++){
+    highEndVertices.insert(it->second);   // the higher end vertex has the smaller scalar value
   }
 
   map<vtkIdType,int> sortedIds;
