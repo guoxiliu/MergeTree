@@ -95,7 +95,7 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
 void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree){
   
   queue<int> Q;
-  for(int i = 0; i < joinTree.size(); ++i){
+  for(unsigned int i = 0; i < joinTree.size(); ++i){
     node *ci = new node(i, joinTree[i]->vtkIdx);
     mergeTree.push_back(ci);
     if(joinTree[i]->numChildren + splitTree[i]->numChildren == 1){

@@ -215,7 +215,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
      vtkIdType cellSize = cellPointIds->GetNumberOfIds();
      for(vtkIdType k = 0; k < cellSize; k++){
        // see if the scalar value is greater than the current one
-       if(scalars[cellPointIds->GetId(k)] > scalars[sortedVertices[i]]){
+       if(scalars[cellPointIds->GetId(k)] < scalars[sortedVertices[i]]){
          superLinks.push_back(cellPointIds->GetId(k));
        }
      }
