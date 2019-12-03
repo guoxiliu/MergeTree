@@ -7,8 +7,9 @@ using namespace std;
 
 // define the tree node in merge tree algorithm 
 struct node{
-  node(int id):idx(id),numChildren(0),parent(nullptr){}
+  node(int id, vtkIdType vtkId):idx(id),vtkIdx(vtkId),numChildren(0),parent(nullptr){}
   int idx;
+  vtkIdType vtkIdx;
   int numChildren;
   node* parent;
   vector<node*> children;
@@ -31,7 +32,8 @@ class MergeTree{
   public:
     MergeTree(vtkUnstructuredGrid *p);
     int build();  // Wrap function for compute JT, ST and CT
-    static vector<vtkIdType> argsort(vector<vtkIdType>, vtkUnstructuredGrid*, bool=true);
+    int build(vector<vtkIdType>&);
+    static vector<vtkIdType> argsort(vector<vtkIdType>&, vtkUnstructuredGrid*, bool=true);
 
     vector<vtkIdType> MaximaQuery();// return maxima points in the simplicial 
     vtkIdType ComponentMaximumQuery(vtkIdType&, float&); // return nodeId within the superlevel component  that has maximum scalar

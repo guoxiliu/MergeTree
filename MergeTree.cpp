@@ -4,8 +4,6 @@
 MergeTree::MergeTree(vtkUnstructuredGrid *p){
   usgrid = p;
   //Set = vector<int>(p->GetNumberOfPoints());
-  SetMax = vector<vtkIdType>(p->GetNumberOfPoints());
-  SetMin = vector<vtkIdType>(p->GetNumberOfPoints());
   //graph = vector<vNode*>(p->GetNumberOfPoints()， new vNode());
 }
 
@@ -17,7 +15,7 @@ vector<vtkIdType> MergeTree::argsort(){
 }
 
 // Sort the scalar values while keeping track of the indices.
-vector<vtkIdType> MergeTree::argsort(vector<vtkIdType> vertexSet,vtkUnstructuredGrid* usgrid, bool increasing){
+vector<vtkIdType> MergeTree::argsort(vector<vtkIdType>& vertexSet,vtkUnstructuredGrid* usgrid, bool increasing){
   vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
   switch(scalarfield->GetDataType()){
     case VTK_FLOAT:
@@ -60,20 +58,26 @@ int MergeTree::build(){
   mergeJoinSplit(joinTree, splitTree);
   return 0;
 }
-
+int MergeTree::build(vector<vtkIdType>& points){
+  vector<vtkIdType> sortedIndices = argsort(points, usgrid);
+  constructJoin(sortedIndices);
+  constructSplit(sortedIndices);
+  mergeJoinSplit(joinTree, splitTree);
+  return 0;
+}
 // Construct the join tree.
 void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
-
   // record [vtkId] = pos in sortedindices
-  vector<int> sortedIds(sortedIndices.size());
+  map<vtkIdType, int> sortedIds;
   for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     sortedIds[sortedIndices[i]] = i;
   }
+  SetMax = vector<vtkIdType>(sortedIndices.size());
   //iota(Set.begin(), Set.end(), 0);
   iota(SetMax.begin(), SetMax.end(), 0);
   //iota(SetMin.begin(), SetMin.end(), 0);
   for(unsigned int i = 0; i < sortedIndices.size(); ++i){
-    node *ai = new node(i);
+    node *ai = new node(i, sortedIndices[i]);
     joinTree.push_back(ai);
     graph.push_back(new vNode());
     graph[i]->jNode = ai;
@@ -96,16 +100,17 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
 // Construct the split tree.
 void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
   // record [vtkId] = pos in sortedindices
-  vector<int> sortedIds(sortedIndices.size());
+  map<vtkIdType, int> sortedIds;
   for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     sortedIds[sortedIndices[i]] = i;
   }
 
   // iota(Set.begin(), Set.end(), 0);
   // iota(SetMax.begin(), SetMax.end(), 0);
+  SetMin = vector<vtkIdType>(sortedIndices.size());
   iota(SetMin.begin(), SetMin.end(), 0);
   for (int i = sortedIndices.size()-1; i >= 0; --i){
-    node *bi = new node(i);
+    node *bi = new node(i, sortedIndices[i]);
     splitTree.push_back(bi);
     graph[i]->sNode = bi;
     // get the neighbors of bi
@@ -128,9 +133,10 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
 
 // Merge the split and join tree.
 void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree){
+  
   queue<int> Q;
-  for(int i = 0; i < usgrid->GetNumberOfPoints(); ++i){
-    node *ci = new node(i);
+  for(int i = 0; i < joinTree.size(); ++i){
+    node *ci = new node(i, joinTree[i]->vtkIdx);
     mergeTree.push_back(ci);
     if(joinTree[i]->numChildren + splitTree[i]->numChildren == 1){
       Q.push(i);
@@ -241,16 +247,16 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUn
 
 // get the nodeId (id in .vtu) of local maximum
 vector<vtkIdType> MergeTree::MaximaQuery(){
-  vector<vtkIdType> sortedIndices = argsort();
-  vector<int> sortedIds(sortedIndices.size());
-  for(unsigned int i = 0; i < sortedIndices.size(); ++i){
-    sortedIds[sortedIndices[i]] = i;
+  //vector<vtkIdType> sortedIndices = argsort();
+  map<vtkIdType,int> sortedIds;
+  for(unsigned int i = 0; i < mergeTree.size(); ++i){
+    sortedIds[mergeTree[i]->vtkIdx] = mergeTree->idx;
   }
   vector<vtkIdType> maxima;
   //iterate mergeTree to find local maximum
   for(auto node:mergeTree){
     if(node->numChildren == 0 && node->parent->idx < node->idx){
-      maxima.push_back(sortedIds[node->idx]);
+      maxima.push_back(node->vtkIdx);
     }
   }
   return maxima;
@@ -258,10 +264,11 @@ vector<vtkIdType> MergeTree::MaximaQuery(){
 
 // return nodeId within the superlevel component  that has maximum scalar
 vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v,float& level){
-  vector<vtkIdType> sortedIndices = argsort();
-  vector<int> sortedIds(sortedIndices.size());
-  for(unsigned int i = 0; i < sortedIndices.size(); ++i){
-    sortedIds[sortedIndices[i]] = i;
+  // vector<vtkIdType> sortedIndices = argsort();
+  map<vtkIdType,int> sortedIds;
+  for(unsigned int i = 0; i < mergeTree.size(); ++i){
+    //sortedIds[sortedIndices[i]] = i;
+    sortedIds[mergeTree[i]->vtkIdx] = mergeTree->idx;
   }
   
   int idx = sortedIds[v];
@@ -269,9 +276,9 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v,float& level){
   float* scalarData = (float*) getScalar(usgrid);
   if(scalarData[v] < level){
     // return bottom of superlevel  component
-    for(auto id:sortedIndices){
-      if(scalarData[id] >= level)
-        return id;
+    for(auto node:mergeTree){
+      if(scalarData[node->vtkIdx] >= level)
+        return node->vtkIdx;
     }
     return v;
   }else{
@@ -291,7 +298,7 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v,float& level){
       }
     }
   }
-  return sortedIndices[compMax];
+  return mergeTree[compMax]->vtkIdx;
 }
 
 void* MergeTree::getScalar(vtkUnstructuredGrid* usgrid){
