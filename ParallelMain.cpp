@@ -2,7 +2,6 @@
 #include <omp.h>
 #include <vtkSmartPointer.h>
 #include <vtkXMLImageDataReader.h>
-#include <vtkXMLUnstructuredGridReader.h>
 
 using namespace std;
 
@@ -12,19 +11,19 @@ int main ( int argc, char *argv[] )
 {
   // parse command line arguments
   if(argc < 2){
-    fprintf(stderr, "Usage: %s Filename(.vtu)\n", argv[0]);
+    fprintf(stderr, "Usage: %s Filename(.vti)\n", argv[0]);
     return 1;
   }
 
   string filename = argv[1];
   string extension = filename.substr(filename.length() - 3);
 
-  if(extension != "vtu"){
-    fprintf(stderr, "The file extension should be .vtu!\n");
+  if(extension != "vti"){
+    fprintf(stderr, "The file extension should be .vti!\n");
     return 2;
   }
 
-  vtkSmartPointer<vtkXMLUnstructuredGridReader> reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+  vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
   reader->SetFileName(filename.c_str());
   reader->Update();
 
@@ -34,11 +33,10 @@ int main ( int argc, char *argv[] )
   printf("There are %lld points in the unstructed grid.\n", pointNum);
 
   // Partition the dataset 
-  vtkUnstructuredGrid *usgrid = reader->GetOutput();
-  usgrid->BuildLinks();
+  vtkImageData *sgrid = reader->GetOutput();
   vector<vector<vtkIdType>> regions;
   set<pair<vtkIdType, vtkIdType>> globalBridgeSet;
-  decompose(threadNum, usgrid, regions, globalBridgeSet);
+  decompose(threadNum, sgrid, regions, globalBridgeSet);
   
   // Test the domain decomposition and global bridge set
   // for(unsigned i = 0; i < regions[0].size(); i++){
@@ -51,15 +49,15 @@ int main ( int argc, char *argv[] )
   // }
 
   // Test argsort function
-  // vector<vtkIdType> sortedIndices = argsort(regions[0], usgrid, false);
-  // float *scalars = (float *)(usgrid->GetPointData()->GetArray(0)->GetVoidPointer(0));
+  // vector<vtkIdType> sortedIndices = argsort(regions[0], sgrid, false);
+  // float *scalars = (float *)(sgrid->GetPointData()->GetArray(0)->GetVoidPointer(0));
   // for (unsigned int i = 0; i < sortedIndices.size(); i++) {
   //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
   // }
   
-  vector<vtkIdType> allVertices(usgrid->GetNumberOfPoints());
+  vector<vtkIdType> allVertices(sgrid->GetNumberOfPoints());
   iota(allVertices.begin(), allVertices.end(), 0);
-  set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, usgrid);
+  set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, sgrid);
   // Test the reduced global bridge set
   // printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
   // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
@@ -80,7 +78,7 @@ int main ( int argc, char *argv[] )
       // printf("Thread id = %d\n", tid);
 
       // Construct the local merge tree with the vertex set
-      MergeTree localMergeTree(usgrid);
+      MergeTree localMergeTree(sgrid);
       localMergeTree.build(regions[tid]);
       
       // Construct the reduced bridge set

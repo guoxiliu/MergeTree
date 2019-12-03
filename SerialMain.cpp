@@ -1,7 +1,7 @@
 #include "MergeTree.h"
 #include <vtkSmartPointer.h>
 #include <vtkXMLImageDataReader.h>
-#include <vtkXMLUnstructuredGridReader.h>
+#include <vtkXMLImageDataReader.h>
 
 using namespace std;
 
@@ -9,7 +9,7 @@ int main ( int argc, char *argv[] )
 {
   //parse command line arguments
   if(argc < 2){
-    cerr << "Usage: " << argv[0] << " Filename(.vtu)" << endl;
+    cerr << "Usage: " << argv[0] << " Filename(.vti)" << endl;
     return EXIT_FAILURE;
   }
 
@@ -17,12 +17,12 @@ int main ( int argc, char *argv[] )
   string filename = argv[1];
   string extension = filename.substr(filename.length() - 3);
 
-  if(extension != "vtu"){
-    cout << "The file extension should be .vtu!\n";
+  if(extension != "vti"){
+    cout << "The file extension should be .vti!\n";
     return -1;
   }
 
-  vtkSmartPointer<vtkXMLUnstructuredGridReader> reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+  vtkSmartPointer<vtkXMLImageDataReader> reader = vtkSmartPointer<vtkXMLImageDataReader>::New();
   reader->SetFileName(filename.c_str());
   reader->Update();
 

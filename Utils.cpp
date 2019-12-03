@@ -4,8 +4,8 @@
 /**
  * Get the void pointer of the scalar data.
  */ 
-void* getScalar(vtkUnstructuredGrid* usgrid) {
-  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
+void* getScalar(vtkImageData* sgrid) {
+  vtkDataArray *scalarfield = sgrid->GetPointData()->GetArray(0);
   void *scalarData = scalarfield->GetVoidPointer(0);
   return scalarData;
 }
@@ -13,9 +13,9 @@ void* getScalar(vtkUnstructuredGrid* usgrid) {
 /**
  * Sort the scalar values while keeping track of the indices.
  */ 
-vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkUnstructuredGrid* usgrid, bool increasing){
+vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkImageData* sgrid, bool increasing){
   vector<vtkIdType> sortedVertices(vertexSet.begin(), vertexSet.end());
-  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
+  vtkDataArray *scalarfield = sgrid->GetPointData()->GetArray(0);
   switch(scalarfield->GetDataType()){
     case VTK_FLOAT:
     {
@@ -84,7 +84,7 @@ void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
 /**
  * Recursive bisection.
  */
-void bisect(int count, int idx, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdType>> &regions){
+void bisect(int count, int idx, vtkImageData *sgrid, vector<vector<vtkIdType>> &regions){
 
   if(count <= 0) return;
 
@@ -99,7 +99,7 @@ void bisect(int count, int idx, vtkUnstructuredGrid *usgrid, vector<vector<vtkId
     // find the minimum and maximum coordinate value of current region.
     for(vtkIdType j = 0; j < totalPoints; j++){
       double xyz[3];
-      usgrid->GetPoint(regions[i][j], xyz);
+      sgrid->GetPoint(regions[i][j], xyz);
       if(xyz[idx] < minVal) minVal = xyz[idx];
       if(xyz[idx] > maxVal) maxVal = xyz[idx];
     }
@@ -109,7 +109,7 @@ void bisect(int count, int idx, vtkUnstructuredGrid *usgrid, vector<vector<vtkId
     vector<vtkIdType> first, second;
     for(vtkIdType j = 0; j < totalPoints; j++){
       double xyz[3];
-      usgrid->GetPoint(regions[i][j], xyz);
+      sgrid->GetPoint(regions[i][j], xyz);
       if(xyz[idx] < center) first.push_back(regions[i][j]);
       else second.push_back(regions[i][j]);
     }
@@ -119,22 +119,22 @@ void bisect(int count, int idx, vtkUnstructuredGrid *usgrid, vector<vector<vtkId
 
   // do bisection for the next dimension
   regions = newRegions;
-  bisect(count/2, (idx+1)%3, usgrid, regions);
+  bisect(count/2, (idx+1)%3, sgrid, regions);
 }
 
 /**
  * Decompose the domain according to the number of threads.
  * Also create the global bridge set at the same time.
  */ 
-void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdType>> &regions, set<pair<vtkIdType, vtkIdType>> &gBridgeSet){
+void decompose(int numThreads, vtkImageData *sgrid, vector<vector<vtkIdType>> &regions, set<pair<vtkIdType, vtkIdType>> &gBridgeSet){
 
   // initialize regions
-  vtkIdType totalVertices = usgrid->GetNumberOfPoints();
+  vtkIdType totalVertices = sgrid->GetNumberOfPoints();
   regions = vector<vector<vtkIdType>>(1, vector<vtkIdType>(totalVertices));
   iota(regions[0].begin(), regions[0].end(), 0);
 
   // partition the vertices into different regions
-  bisect(numThreads/2, 0, usgrid, regions);
+  bisect(numThreads/2, 0, sgrid, regions);
 
 
   // create the vertex-region map
@@ -145,14 +145,14 @@ void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdT
     }
   }
 
-  float *scalars = (float *)getScalar(usgrid);
+  float *scalars = (float *)getScalar(sgrid);
 
   // loop all the cells in the grid
   gBridgeSet = set<pair<vtkIdType, vtkIdType>>();
-  vtkIdType totalCells = usgrid->GetNumberOfCells();
+  vtkIdType totalCells = sgrid->GetNumberOfCells();
   for(vtkIdType i = 0; i < totalCells; i++){
     vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
-    usgrid->GetCellPoints(i, cellPointIds);
+    sgrid->GetCellPoints(i, cellPointIds);
     vtkIdType cellSize = cellPointIds->GetNumberOfIds();
     vector<int> regionIds(cellSize);
     for(vtkIdType j = 0; j < cellSize; j++){
@@ -191,27 +191,27 @@ set<pair<vtkIdType, vtkIdType>> getLocalBridgeSet(const set<pair<vtkIdType, vtkI
 /**
  * Get the reduced bridge set.
  */ 
-set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vtkIdType>> &bridgeSet, const vector<vtkIdType> &vertexList, vtkUnstructuredGrid *usgrid){
+set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vtkIdType>> &bridgeSet, const vector<vtkIdType> &vertexList, vtkImageData *sgrid){
   // initialize
   set<pair<vtkIdType, vtkIdType>> reducedBS;
   int regionSize = vertexList.size();
-  vector<vtkIdType> component(usgrid->GetNumberOfPoints());
+  vector<vtkIdType> component(sgrid->GetNumberOfPoints());
   iota(component.begin(), component.end(), 0);
-  float *scalars = (float *)getScalar(usgrid);
+  float *scalars = (float *)getScalar(sgrid);
 
-  vector<vtkIdType> sortedVertices = argsort(vertexList, usgrid, false);
+  vector<vtkIdType> sortedVertices = argsort(vertexList, sgrid, false);
   // loop the vetex ids in decreasing order
   for(int i = 0; i < regionSize; i++){
    // build the super link set of the current vertex id
    vector<vtkIdType> superLinks;
    // first get the cells incident to the vertex
    vtkSmartPointer<vtkIdList> pointCellIds = vtkSmartPointer<vtkIdList>::New();
-   usgrid->GetPointCells(sortedVertices[i], pointCellIds);
+   sgrid->GetPointCells(sortedVertices[i], pointCellIds);
    vtkIdType pointCellSize = pointCellIds->GetNumberOfIds();
    for(vtkIdType j = 0; j < pointCellSize; j++){
      // for each cell get its vertices
      vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
-     usgrid->GetCellPoints(pointCellIds->GetId(j), cellPointIds);
+     sgrid->GetCellPoints(pointCellIds->GetId(j), cellPointIds);
      vtkIdType cellSize = cellPointIds->GetNumberOfIds();
      for(vtkIdType k = 0; k < cellSize; k++){
        // see if the scalar value is greater than the current one

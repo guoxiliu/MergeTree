@@ -1,24 +1,24 @@
 #include "MergeTree.h"
 
 // Constructor.
-MergeTree::MergeTree(vtkUnstructuredGrid *p){
-  usgrid = p;
+MergeTree::MergeTree(vtkImageData *p){
+  sgrid = p;
   //Set = vector<int>(p->GetNumberOfPoints());
   //graph = vector<vNode*>(p->GetNumberOfPoints()， new vNode());
 }
 
 // Build the merge tree.
 int MergeTree::build(){
-  vector<vtkIdType> indices(usgrid->GetNumberOfPoints());
+  vector<vtkIdType> indices(sgrid->GetNumberOfPoints());
   iota(indices.begin(), indices.end(), 0);
-  vector<vtkIdType> sortedIndices = argsort(indices, usgrid);  
+  vector<vtkIdType> sortedIndices = argsort(indices, sgrid);  
   constructJoin(sortedIndices);
   constructSplit(sortedIndices);
   mergeJoinSplit(joinTree, splitTree);
   return 0;
 }
 int MergeTree::build(vector<vtkIdType>& points){
-  vector<vtkIdType> sortedIndices = argsort(points, usgrid);
+  vector<vtkIdType> sortedIndices = argsort(points, sgrid);
   constructJoin(sortedIndices);
   constructSplit(sortedIndices);
   mergeJoinSplit(joinTree, splitTree);
@@ -186,14 +186,14 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkIdType vertexId, c
 
   // get all cells that vertex 'id' is a part of 
   vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
-  usgrid->GetPointCells(vertexId,cellIdList);
+  sgrid->GetPointCells(vertexId,cellIdList);
 
 
   set<vtkIdType> neighbors;
   for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds();++i){
     // get the points of each cell
     vtkSmartPointer<vtkIdList> pointIdList = vtkSmartPointer<vtkIdList>::New();
-    usgrid->GetCellPoints(cellIdList->GetId(i),pointIdList);
+    sgrid->GetCellPoints(cellIdList->GetId(i),pointIdList);
 
     for(vtkIdType j = 0; j <pointIdList->GetNumberOfIds(); ++j){
       neighbors.insert(pointIdList->GetId(j));   
@@ -238,16 +238,17 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
 vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
   // vector<vtkIdType> sortedIndices = argsort();
   map<vtkIdType,int> sortedIds;
-  for(unsigned int i = 0; i < mergeTree.size(); ++i){
+  int treeSize = mergeTree.size();
+  for(int i = 0; i < treeSize; ++i){
     //sortedIds[sortedIndices[i]] = i;
     sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
   }
   int idx = sortedIds[v];
   queue<node*> nodes;
   set<vtkIdType> visitedVertices;
-  float* scalarData = (float*) getScalar(usgrid);
+  float* scalarData = (float*) getScalar(sgrid);
 
-  int compMax = scalarData[v] < level ? mergeTree.size():idx;
+  int compMax = scalarData[v] < level ? treeSize:idx;
 
   nodes.push(mergeTree[idx]);
   while(nodes.size()){
@@ -270,6 +271,6 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
         nodes.push(child);
     }
   }
-  return compMax == mergeTree.size() ? v : mergeTree[compMax]->vtkIdx;
+  return compMax == treeSize ? v : mergeTree[compMax]->vtkIdx;
 }
 

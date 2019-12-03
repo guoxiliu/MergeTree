@@ -30,7 +30,7 @@ struct vNode{
  */ 
 class MergeTree{
   public:
-    MergeTree(vtkUnstructuredGrid *p);
+    MergeTree(vtkImageData *p);
     int build();  // Wrap function for compute JT, ST and CT
     int build(vector<vtkIdType>&);
 
@@ -38,7 +38,7 @@ class MergeTree{
     vtkIdType ComponentMaximumQuery(vtkIdType&, float&);  // return vertexId within the superlevel component that has maximum scalar function value
   
   protected:
-    vtkUnstructuredGrid* usgrid;  // Unstructed grid
+    vtkImageData* sgrid;  // Unstructed grid
     vector<vtkIdType> SetMin;
     vector<vtkIdType> SetMax;
 
