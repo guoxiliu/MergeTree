@@ -13,7 +13,7 @@ int main ( int argc, char *argv[] )
   // parse command line arguments
   if(argc < 2){
     fprintf(stderr, "Usage: %s Filename(.vtu)\n", argv[0]);
-    return EXIT_FAILURE;
+    return 1;
   }
 
   string filename = argv[1];
@@ -21,7 +21,7 @@ int main ( int argc, char *argv[] )
 
   if(extension != "vtu"){
     fprintf(stderr, "The file extension should be .vtu!\n");
-    return -1;
+    return 2;
   }
 
   vtkSmartPointer<vtkXMLUnstructuredGridReader> reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
@@ -37,7 +37,7 @@ int main ( int argc, char *argv[] )
   vtkUnstructuredGrid *usgrid = reader->GetOutput();
   usgrid->BuildLinks();
   vector<vector<vtkIdType>> regions;
-  set<vtkIdType> globalBridgeSet;
+  set<pair<vtkIdType, vtkIdType>> globalBridgeSet;
   decompose(threadNum, usgrid, regions, globalBridgeSet);
   
   // Test the domain decomposition and global bridge set
@@ -46,6 +46,9 @@ int main ( int argc, char *argv[] )
   // }
   // printf("\n");
   // printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
+  // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
+  //   printf("<%lld, %lld>\n", (*iter).first, (*iter).second);
+  // }
 
   // Test argsort function
   // vector<vtkIdType> sortedIndices = MergeTree::argsort(regions[0], usgrid, false);
@@ -54,18 +57,29 @@ int main ( int argc, char *argv[] )
   //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
   // }
 
-  // OpenMP test
-  // omp_set_num_threads(threadNum);
-  // #pragma omp parallel
-  // {
-  //   int nthreads, tid;
-  //   tid = omp_get_thread_num();
-  //   printf("Thread id = %d\n", tid);
-  //   if(tid == 0){
-  //     nthreads = omp_get_num_threads();
-  //     printf("Number of threads = %d\n", nthreads);
-  //   }
-  // }
 
-  return EXIT_SUCCESS;
+  
+  // OpenMP routine
+  omp_set_num_threads(threadNum);
+  #pragma omp parallel
+  {
+    unsigned int tid = omp_get_thread_num();
+
+    if(tid < regions.size()){
+      // printf("Thread id = %d\n", tid);
+
+      // TODO: Construct the local merge tree with the vertex set
+      
+      // TODO: Construct the reduced bridge set
+      set<pair<vtkIdType, vtkIdType>> reducedBridgeSet = getReducedBridgeSet(globalBridgeSet, regions[tid], usgrid);
+      
+    }
+
+    // if(tid == 0){
+    //   nthreads = omp_get_num_threads();
+    //   printf("Number of threads = %d\n", nthreads);
+    // }
+  }
+
+  return 0;
 }
