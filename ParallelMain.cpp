@@ -51,7 +51,7 @@ int main ( int argc, char *argv[] )
   // }
 
   // Test argsort function
-  // vector<vtkIdType> sortedIndices = MergeTree::argsort(regions[0], usgrid, false);
+  // vector<vtkIdType> sortedIndices = argsort(regions[0], usgrid, false);
   // float *scalars = (float *)(usgrid->GetPointData()->GetArray(0)->GetVoidPointer(0));
   // for (unsigned int i = 0; i < sortedIndices.size(); i++) {
   //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
@@ -60,6 +60,7 @@ int main ( int argc, char *argv[] )
 
   
   // OpenMP routine
+  vector<vtkIdType> maxima;   // use for maxima query
   omp_set_num_threads(threadNum);
   #pragma omp parallel
   {
@@ -68,17 +69,27 @@ int main ( int argc, char *argv[] )
     if(tid < regions.size()){
       // printf("Thread id = %d\n", tid);
 
-      // TODO: Construct the local merge tree with the vertex set
+      // Construct the local merge tree with the vertex set
+      MergeTree localMergeTree(usgrid);
+      localMergeTree.build(regions[tid]);
       
-      // TODO: Construct the reduced bridge set
-      set<pair<vtkIdType, vtkIdType>> reducedBridgeSet = getReducedBridgeSet(globalBridgeSet, regions[tid], usgrid);
-      
+      // Construct the reduced bridge set
+      set<pair<vtkIdType, vtkIdType>> localBridgeSet = getLocalBridgeSet(globalBridgeSet, regions[tid]);
+
+      // Perform queries
+      vector<vtkIdType> regionMaxima = localMergeTree.MaximaQuery(localBridgeSet);
+      maxima.insert(maxima.end(), regionMaxima.begin(), regionMaxima.end());
     }
 
     // if(tid == 0){
     //   nthreads = omp_get_num_threads();
     //   printf("Number of threads = %d\n", nthreads);
     // }
+  }
+
+  printf("The size of the maxima is %zu\n", maxima.size());
+  for (unsigned int i = 0; i < maxima.size(); i++) {
+    printf("maxima[%ld]: %lld\n", i, maxima[i]);
   }
 
   return 0;

@@ -33,25 +33,20 @@ class MergeTree{
     MergeTree(vtkUnstructuredGrid *p);
     int build();  // Wrap function for compute JT, ST and CT
     int build(vector<vtkIdType>&);
-    static vector<vtkIdType> argsort(vector<vtkIdType>&, vtkUnstructuredGrid*, bool=true);
 
-    vector<vtkIdType> MaximaQuery();// return maxima points in the simplicial 
-    vtkIdType ComponentMaximumQuery(vtkIdType&, float&); // return nodeId within the superlevel component  that has maximum scalar
-    static void* getScalar(vtkUnstructuredGrid*);
+    vector<vtkIdType> MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &);   // return all local maxima in the simplicial complex
+    vtkIdType ComponentMaximumQuery(vtkIdType&, float&);  // return vertexId within the superlevel component that has maximum scalar function value
+  
   protected:
     vtkUnstructuredGrid* usgrid;  // Unstructed grid
     vector<vtkIdType> SetMin;
     vector<vtkIdType> SetMax;
-    //vector<SuperArc> arcs;  // Save the point set?
 
   private:
-    vector<vtkIdType> argsort();  // Sort the vertex ids based on the scalar values
-    vtkSmartPointer<vtkIdList> getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid>, int);
-    
-
     void constructJoin(vector<vtkIdType>&);   // Construct the join tree.
     void constructSplit(vector<vtkIdType>&);  // Construct the split tree.
     void mergeJoinSplit(vector<node*>&, vector<node*>&);  // Merge the split and join tree.
+    vtkSmartPointer<vtkIdList> getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid>, int);
   
   private:
     vector<node*> joinTree;   // Represent the join tree

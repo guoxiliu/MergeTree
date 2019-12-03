@@ -31,12 +31,18 @@ int main ( int argc, char *argv[] )
   cout << "There are " << cellNum << " cells in the triangulation.\n";
   cout << "There are " << pointNum << " points in the triangulation.\n";
 
-  // TODO: Create the merge tree here.
+  // Create the merge tree here.
   MergeTree testTree(reader->GetOutput());
   testTree.build();
 
-  // TODO: Test the queries here.
+  // Test the queries here.
+  set<pair<vtkIdType, vtkIdType>> emptyBridgeSet;
+  vector<vtkIdType> maxima = testTree.MaximaQuery(emptyBridgeSet);
 
+  printf("The size of the maxima is %zu\n", maxima.size());
+  for (unsigned int i = 0; i < maxima.size(); i++) {
+    printf("maxima[%ld]: %lld\n", i, maxima[i]);
+  }
 
   return EXIT_SUCCESS;
 }

@@ -7,52 +7,11 @@ MergeTree::MergeTree(vtkUnstructuredGrid *p){
   //graph = vector<vNode*>(p->GetNumberOfPoints()， new vNode());
 }
 
-// Sort the scalar values while keeping track of the indices.
-vector<vtkIdType> MergeTree::argsort(){
-  vector<vtkIdType> indices(usgrid->GetNumberOfPoints());
-  iota(indices.begin(), indices.end(), 0);
-  return argsort(indices, usgrid);
-}
-
-// Sort the scalar values while keeping track of the indices.
-vector<vtkIdType> MergeTree::argsort(vector<vtkIdType>& vertexSet,vtkUnstructuredGrid* usgrid, bool increasing){
-  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
-  switch(scalarfield->GetDataType()){
-    case VTK_FLOAT:
-    {
-      float *scalarData = (float *)scalarfield->GetVoidPointer(0);
-      //float *scalarData = (float*) getScalar();
-      if(increasing){
-        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
-      }else{
-        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
-      }
-      break;
-    }
-    case VTK_DOUBLE:
-    {
-      double *scalarData = (double *)scalarfield->GetVoidPointer(0);
-      //double* scalarData = (double*) getScalar();
-      if(increasing){
-        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
-      }else{
-        sort(vertexSet.begin(), vertexSet.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
-      }
-      break;
-    }
-    default:
-    {
-      cout << "Type of scalarfield: " << scalarfield->GetDataType() << ", " << scalarfield->GetDataTypeAsString() << endl;
-      break;
-    }
-  }
-
-  return vertexSet;
-}
-
 // Build the merge tree.
 int MergeTree::build(){
-  vector<vtkIdType> sortedIndices = argsort();  
+  vector<vtkIdType> indices(usgrid->GetNumberOfPoints());
+  iota(indices.begin(), indices.end(), 0);
+  vector<vtkIdType> sortedIndices = argsort(indices, usgrid);  
   constructJoin(sortedIndices);
   constructSplit(sortedIndices);
   mergeJoinSplit(joinTree, splitTree);
@@ -65,6 +24,7 @@ int MergeTree::build(vector<vtkIdType>& points){
   mergeJoinSplit(joinTree, splitTree);
   return 0;
 }
+
 // Construct the join tree.
 void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
   // record [vtkId] = pos in sortedindices
@@ -216,10 +176,11 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
       Q.push(k);
     }
   }
-  cout<< "MergeTree is built" << endl;
+
+  printf("Merge tree is built!\n");
 }
 
-
+// Get the neighbors of the given vertex.
 vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUnstructuredGrid> usgrid, int id){
   vtkSmartPointer<vtkIdList> connectedVertices = vtkSmartPointer<vtkIdList>::New();
 
@@ -245,30 +206,36 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkSmartPointer<vtkUn
   return connectedVertices;
 }
 
-// get the nodeId (id in .vtu) of local maximum
-vector<vtkIdType> MergeTree::MaximaQuery(){
-  //vector<vtkIdType> sortedIndices = argsort();
+// Return all local maxima in the simplicial complex.
+vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &bridgeSet){
+  // collect the higher end vertices from the bridge set
+  set<vtkIdType> highEndVertices;
+  for(auto iter = bridgeSet.begin(); iter != bridgeSet.end(); iter++){
+    highEndVertices.insert(iter->second);   // the higher end vertex has the smaller scalar value
+  }
+
   map<vtkIdType,int> sortedIds;
   for(unsigned int i = 0; i < mergeTree.size(); ++i){
-    sortedIds[mergeTree[i]->vtkIdx] = mergeTree->idx;
+    sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
   }
   vector<vtkIdType> maxima;
   //iterate mergeTree to find local maximum
   for(auto node:mergeTree){
     if(node->numChildren == 0 && node->parent->idx < node->idx){
-      maxima.push_back(node->vtkIdx);
+      if(highEndVertices.find(node->vtkIdx) == highEndVertices.end())
+        maxima.push_back(node->vtkIdx);
     }
   }
   return maxima;
 }
 
-// return nodeId within the superlevel component  that has maximum scalar
-vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v,float& level){
+// Return the vertex within the superlevel component that has maximum scalar function value.
+vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
   // vector<vtkIdType> sortedIndices = argsort();
   map<vtkIdType,int> sortedIds;
   for(unsigned int i = 0; i < mergeTree.size(); ++i){
     //sortedIds[sortedIndices[i]] = i;
-    sortedIds[mergeTree[i]->vtkIdx] = mergeTree->idx;
+    sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
   }
   
   int idx = sortedIds[v];
@@ -301,8 +268,3 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v,float& level){
   return mergeTree[compMax]->vtkIdx;
 }
 
-void* MergeTree::getScalar(vtkUnstructuredGrid* usgrid){
-  vtkDataArray *scalarfield = usgrid->GetPointData()->GetArray(0);
-  void *scalarData = scalarfield->GetVoidPointer(0);
-  return scalarData;
-}
