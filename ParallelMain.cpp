@@ -56,6 +56,16 @@ int main ( int argc, char *argv[] )
   // for (unsigned int i = 0; i < sortedIndices.size(); i++) {
   //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
   // }
+  
+  vector<vtkIdType> allVertices(usgrid->GetNumberOfPoints());
+  iota(allVertices.begin(), allVertices.end(), 0);
+  set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, usgrid);
+  // Test the reduced global bridge set
+  // printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
+  // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
+  //   printf("<%lld, %lld>\n", (*iter).first, (*iter).second);
+  // }
+  
 
 
   
@@ -74,7 +84,7 @@ int main ( int argc, char *argv[] )
       localMergeTree.build(regions[tid]);
       
       // Construct the reduced bridge set
-      set<pair<vtkIdType, vtkIdType>> localBridgeSet = getLocalBridgeSet(globalBridgeSet, regions[tid]);
+      set<pair<vtkIdType, vtkIdType>> localBridgeSet = getLocalBridgeSet(reducedGlobalBS, regions[tid]);
 
       // Perform queries
       vector<vtkIdType> regionMaxima = localMergeTree.MaximaQuery(localBridgeSet);
@@ -89,7 +99,7 @@ int main ( int argc, char *argv[] )
 
   printf("The size of the maxima is %zu\n", maxima.size());
   for (unsigned int i = 0; i < maxima.size(); i++) {
-    printf("maxima[%ld]: %lld\n", i, maxima[i]);
+    printf("maxima[%u]: %lld\n", i, maxima[i]);
   }
 
   return 0;
