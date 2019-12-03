@@ -256,16 +256,19 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
   }else{
     queue<node*> nodes;
     nodes.push(mergeTree[idx]);
+    set<int> visitedVertices;
     while(nodes.size()){
       node* n = nodes.front();
       compMax = n->idx > compMax? n->idx: compMax;
       nodes.pop();
-      if(n->parent && n->parent->idx >idx){
+      if(n->parent && n->parent->idx >idx && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end()){
         nodes.push(n->parent);
+        visitedVertices.insert(n->parent->vtkIdx);
       }
       for(auto child : n->children){
-        if(child->idx > idx){
+        if(child->idx > idx && visitedVertices.find(child->vtkIdx) == visitedVertices.end()){
           nodes.push(n->parent);
+          visitedVertices.insert(child->vtkIdx);
         }
       }
     }
