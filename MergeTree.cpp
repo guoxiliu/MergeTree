@@ -242,37 +242,34 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
     //sortedIds[sortedIndices[i]] = i;
     sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
   }
-  
   int idx = sortedIds[v];
-  int compMax = idx;
+  queue<node*> nodes;
+  set<vtkIdType> visitedVertices;
   float* scalarData = (float*) getScalar(usgrid);
-  if(scalarData[v] < level){
+
+  int compMax = scalarData[v] < level ? mergeTree.size():idx;
+
+  nodes.push(mergeTree[idx]);
+  while(nodes.size()){
+    node* n = nodes.front();
+    nodes.pop();
+    visitedVertices.insert(n->vtkIdx);
+
+    if(scalarData[v] < level){
     // return bottom of superlevel  component
-    for(auto node:mergeTree){
-      if(scalarData[node->vtkIdx] >= level)
-        return node->vtkIdx;
-    }
-    return v;
-  }else{
-    queue<node*> nodes;
-    nodes.push(mergeTree[idx]);
-    set<int> visitedVertices;
-    while(nodes.size()){
-      node* n = nodes.front();
+      if(scalarData[n->vtkIdx] >= level && n->idx < compMax)
+        compMax = n->vtkIdx;  
+    }else{
       compMax = n->idx > compMax? n->idx: compMax;
-      nodes.pop();
-      if(n->parent && n->parent->idx >idx && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end()){
+    }
+    
+    if(n->parent && n->parent->idx > idx && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
         nodes.push(n->parent);
-        visitedVertices.insert(n->parent->vtkIdx);
-      }
-      for(auto child : n->children){
-        if(child->idx > idx && visitedVertices.find(child->vtkIdx) == visitedVertices.end()){
-          nodes.push(n->parent);
-          visitedVertices.insert(child->vtkIdx);
-        }
-      }
+    for(auto child : n->children){
+      if(child->idx > idx && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
+        nodes.push(child);
     }
   }
-  return mergeTree[compMax]->vtkIdx;
+  return compMax == mergeTree.size() ? v : mergeTree[compMax]->vtkIdx;
 }
 
