@@ -79,7 +79,7 @@ void bisect(int count, int idx, vtkUnstructuredGrid *usgrid, vector<vector<vtkId
  * Decompose the domain according to the number of threads.
  * Also create the global bridge set at the same time.
  */ 
-void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdType>> &regions, set<vtkIdType> &gBridgeSet){
+void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdType>> &regions, set<pair<vtkIdType, vtkIdType>> &gBridgeSet){
 
   // initialize regions
   vtkIdType totalVertices = usgrid->GetNumberOfPoints();
@@ -99,11 +99,12 @@ void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdT
   }
 
   // loop all the cells in the grid
-  gBridgeSet = set<vtkIdType>();
+  gBridgeSet = set<pair<vtkIdType, vtkIdType>>();
   vtkIdType totalCells = usgrid->GetNumberOfCells();
   for(vtkIdType i = 0; i < totalCells; i++){
     vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
     usgrid->GetCellPoints(i, cellPointIds);
+    cellPointIds->Sort();
     vtkIdType cellSize = cellPointIds->GetNumberOfIds();
     vector<int> regionIds(cellSize);
     for(vtkIdType j = 0; j < cellSize; j++){
@@ -111,23 +112,36 @@ void decompose(int numThreads, vtkUnstructuredGrid *usgrid, vector<vector<vtkIdT
     }
 
     // see if all the vertices of the cell are in the same region
-    bool inBridge = false;
-    for(vtkIdType j = 1; j < cellSize; j++){
-      if(regionIds[0] != regionIds[j])
-        inBridge = true;
+    for(vtkIdType j = 0; j < cellSize-1; j++){
+      for(vtkIdType k = j+1; k < cellSize; k++){
+        if(regionIds[j] != regionIds[k]){
+          pair<vtkIdType, vtkIdType> edge(cellPointIds->GetId(j), cellPointIds->GetId(k));
+          gBridgeSet.insert(edge);
+        }
+      }
     }
-    if(inBridge) gBridgeSet.insert(i);
   }
 }
 
 /**
  * Get the reduced bridge set.
  */ 
-set<pair<vtkIdType, vtkIdType>> getReducedBrdigeSet(set<pair<vtkIdType, vtkIdType>> bridgeSet, vector<vtkIdType> vertexSet, vtkUnstructuredGrid *usgrid){
+set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vtkIdType>> &globalBridgeSet, vector<vtkIdType> vertexList, vtkUnstructuredGrid *usgrid){
+  // create the local bridge set first
+  set<vtkIdType> vertexSet(vertexList.begin(), vertexList.end());
+  set<pair<vtkIdType, vtkIdType>> localBridgeSet;
+  for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
+    if(vertexSet.find(iter->first) != vertexSet.end() || vertexSet.find(iter->second) != vertexSet.end()){
+      localBridgeSet.insert(*iter);
+    }
+  }
+  // printf("Size of the local bridge set: %zu\n", localBridgeSet.size());
+
   // initialize
   set<pair<vtkIdType, vtkIdType>> reducedBS;
-  int regionSize = vertexSet.size();
-  vector<vtkIdType> component(vertexSet.begin(), vertexSet.end());
+  int regionSize = vertexList.size();
+  vector<vtkIdType> component(usgrid->GetNumberOfPoints());
+  iota(component.begin(), component.end(), 0);
 
   // loop the vetex ids in decreasing order
   for(int i = regionSize-1; i >= 0; i--){
@@ -135,7 +149,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBrdigeSet(set<pair<vtkIdType, vtkIdTyp
     vector<vtkIdType> superLinks;
     // first get the cells incident to the vertex
     vtkSmartPointer<vtkIdList> pointCellIds = vtkSmartPointer<vtkIdList>::New();
-    usgrid->GetPointCells(vertexSet[i], pointCellIds);
+    usgrid->GetPointCells(vertexList[i], pointCellIds);
     vtkIdType pointCellSize = pointCellIds->GetNumberOfIds();
     for(vtkIdType j = 0; j < pointCellSize; j++){
       // for each cell get its vertices
@@ -144,27 +158,30 @@ set<pair<vtkIdType, vtkIdType>> getReducedBrdigeSet(set<pair<vtkIdType, vtkIdTyp
       vtkIdType cellSize = cellPointIds->GetNumberOfIds();
       for(vtkIdType k = 0; k < cellSize; k++){
         // see if the vertex id is greater than the current one
-        if(pointCellIds->GetId(j) > vertexSet[i]){
-          superLinks.push_back(pointCellIds->GetId(j));
+        if(cellPointIds->GetId(k) > vertexList[i]){
+          superLinks.push_back(cellPointIds->GetId(k));
         }
       }
     }
     
     // connect inside region
     for(vtkIdType &j:superLinks){
-      pair<vtkIdType, vtkIdType> edge(vertexSet[i], j);
-      if(bridgeSet.find(edge) == bridgeSet.end()){
-        unionSet(component, vertexSet[i], j);
+      pair<vtkIdType, vtkIdType> edge(vertexList[i], j);
+      if(localBridgeSet.find(edge) == localBridgeSet.end()){
+        unionSet(component, vertexList[i], j);
       }
     }
 
     // connect between regions
     for(vtkIdType &j:superLinks){
-      if(findSet(component, vertexSet[i]) != findSet(component, j)){
-        unionSet(component, vertexSet[i], j);
-        reducedBS.insert(pair<vtkIdType, vtkIdType>(vertexSet[i], j));
+      if(findSet(component, vertexList[i]) != findSet(component, j)){
+        unionSet(component, vertexList[i], j);
+        reducedBS.insert(pair<vtkIdType, vtkIdType>(vertexList[i], j));
       }
     }
   }
+
+  // printf("Size of the reduced bridge set: %zu\n", reducedBS.size());
+
   return reducedBS;
 }
