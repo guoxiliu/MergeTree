@@ -45,6 +45,7 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
       }
     }
   }
+  printf("Join tree built!\n");
 }
 
 // Construct the split tree.
@@ -71,17 +72,19 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
       }
     }
   }
+  printf("Split tree built!\n");
 }
 
-/*
+
 // Merge the split and join tree.
 void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree){
   
   queue<int> Q;
+  mergeTree = vector<node*>(joinTree.size(), nullptr);
   for(unsigned int i = 0; i < joinTree.size(); ++i){
-    node *ci = new node(i, joinTree[i]->vtkIdx);
-    mergeTree.push_back(ci);
-    if(joinTree[i]->numChildren + splitTree[i]->numChildren == 1){
+    node *ci = new node(i);
+    mergeTree.at(i) = ci;
+    if(joinTree[i]->children.size() + splitTree[i]->children.size() == 1){
       Q.push(i);
     }
   }
@@ -89,22 +92,17 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
   while (Q.size() > 1){
     int i = Q.front();
     Q.pop();
-    int k;
-    if(joinTree[i]->numChildren == 0){
-      k = joinTree[i]->parent->idx;
+    vtkIdType k;
+    if(joinTree[i]->children.size() == 0){
+      k = joinTree[i]->parent->vtkIdx;
       mergeTree[i]->parent = mergeTree[k]; 
-      mergeTree[k]->numChildren += 1;
       mergeTree[k]->children.push_back(mergeTree[i]);
       // delete ai from join Tree
-      //if(joinTree[i]->parent){
       auto it = find(joinTree[i]->parent->children.begin(), joinTree[i]->parent->children.end(),joinTree[i]);
       joinTree[i]->parent->children.erase(it);
-      joinTree[i]->parent->numChildren -= 1;
-      //}
       joinTree[i] = nullptr;
 
       // connect bi's parent with bi's children
-
       //if bi is the root of split tree, just make it's children's parent to null
       if(!splitTree[i]->parent){
         for(auto child : splitTree[i]->children){
@@ -113,26 +111,20 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
       }else{
         it = find(splitTree[i]->parent->children.begin(), splitTree[i]->parent->children.end(), splitTree[i]);
         splitTree[i]->parent->children.erase(it);
-        splitTree[i]->parent->numChildren -= 1;
 
         for(auto child : splitTree[i]->children){
           child->parent = splitTree[i]->parent;
           splitTree[i]->parent->children.push_back(child);
-          splitTree[i]->parent->numChildren += 1;
         }
       }
       splitTree[i] = nullptr;
     }else{
-      k = splitTree[i]->parent->idx;
+      k = splitTree[i]->parent->vtkIdx;
       mergeTree[i]->parent = mergeTree[k];
-      mergeTree[k]->numChildren += 1;
       mergeTree[k]->children.push_back(mergeTree[i]);
       //delete bi from split tree
-      //if(splitTree[i]->parent){
       auto it = find(splitTree[i]->parent->children.begin(), splitTree[i]->parent->children.end(), splitTree[i]);
       splitTree[i]->parent->children.erase(it);
-      splitTree[i]->parent->numChildren -= 1;
-      //}
       splitTree[i] = nullptr;
 
       // connect ai's parent with ai's children
@@ -144,25 +136,22 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
       }else{
         it = find(joinTree[i]->parent->children.begin(), joinTree[i]->parent->children.end(),joinTree[i]);
         joinTree[i]->parent->children.erase(it);
-        joinTree[i]->parent->numChildren -= 1;
-      
+        
         for(auto child : joinTree[i]->children){
           child->parent = joinTree[i]->parent;
           joinTree[i]->parent->children.push_back(child);
-          joinTree[i]->parent->numChildren += 1;
         }
       }
       joinTree[i] = nullptr;
     }
-     
-    if(joinTree[k]->numChildren + splitTree[k]->numChildren == 1){
+    if(joinTree[k]->children.size() + splitTree[k]->children.size() == 1){
       Q.push(k);
     }
   }
 
-  printf("Merge tree is built!\n");
+  printf("Merge tree built!\n");
 }
-*/
+
 
 // Get the lower links of the given vertex.
 vector<vtkIdType> MergeTree::getLowerLinks(vtkIdType vertexId){
@@ -214,7 +203,7 @@ vector<vtkIdType> MergeTree::getUpperLinks(vtkIdType vertexId){
   return lowerLinks;
 }
 
-/*
+
 // Return all local maxima in the simplicial complex.
 vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &bridgeSet){
   // collect the higher end vertices from the bridge set
@@ -222,15 +211,12 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
   for(auto it = bridgeSet.begin(); it != bridgeSet.end(); it++){
     lowEndVertices.insert(it->first);   // the higher end vertex has the smaller scalar value
   }
+  float* scalarData = (float*) getScalar(sgrid);
 
-  map<vtkIdType,int> sortedIds;
-  for(unsigned int i = 0; i < mergeTree.size(); ++i){
-    sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
-  }
   vector<vtkIdType> maxima;
   //iterate mergeTree to find local maximum
   for(auto node:mergeTree){
-    if(node->numChildren == 0 && node->parent->idx < node->idx){
+    if(node->children.size() == 0 && scalarData[node->parent->vtkIdx] < scalarData[node->vtkIdx]){
       if(lowEndVertices.find(node->vtkIdx) == lowEndVertices.end())
         maxima.push_back(node->vtkIdx);
     }
@@ -240,41 +226,28 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
 
 // Return the vertex within the superlevel component that has maximum scalar function value.
 vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
-  // vector<vtkIdType> sortedIndices = argsort();
-  map<vtkIdType,int> sortedIds;
-  int treeSize = mergeTree.size();
-  for(int i = 0; i < treeSize; ++i){
-    //sortedIds[sortedIndices[i]] = i;
-    sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
-  }
-  int idx = sortedIds[v];
   queue<node*> nodes;
   set<vtkIdType> visitedVertices;
   float* scalarData = (float*) getScalar(sgrid);
+  if(scalarData[v] < level)
+    return v;
+  vtkIdType compMax = v;
 
-  int compMax = scalarData[v] < level ? treeSize:idx;
-
-  nodes.push(mergeTree[idx]);
+  nodes.push(mergeTree[v]);
   while(nodes.size()){
     node* n = nodes.front();
     nodes.pop();
     visitedVertices.insert(n->vtkIdx);
 
-    if(scalarData[v] < level){
-    // return bottom of superlevel  component
-      if(scalarData[n->vtkIdx] >= level && n->idx < compMax)
-        compMax = n->vtkIdx;  
-    }else{
-      compMax = n->idx > compMax? n->idx: compMax;
-    }
+    compMax = scalarData[n->vtkIdx] > scalarData[compMax]? n->vtkIdx: compMax;
     
-    if(n->parent && n->parent->idx > idx && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
+    if(n->parent && scalarData[n->parent->vtkIdx] > level && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
         nodes.push(n->parent);
     for(auto child : n->children){
-      if(child->idx > idx && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
+      if(scalarData[child->vtkIdx] > level && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
         nodes.push(child);
     }
   }
-  return compMax == treeSize ? v : mergeTree[compMax]->vtkIdx;
+  return compMax;
 }
-*/
+
