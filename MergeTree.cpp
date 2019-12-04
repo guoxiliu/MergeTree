@@ -12,8 +12,11 @@ int MergeTree::build(){
   vector<vtkIdType> indices(sgrid->GetNumberOfPoints());
   iota(indices.begin(), indices.end(), 0);
   vector<vtkIdType> sortedIndices = argsort(indices, sgrid);  
+  
   constructJoin(sortedIndices);
+ 
   constructSplit(sortedIndices);
+  
   mergeJoinSplit(joinTree, splitTree);
   return 0;
 }
@@ -28,28 +31,39 @@ int MergeTree::build(vector<vtkIdType>& points){
 // Construct the join tree.
 void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
   // record [vtkId] = pos in sortedindices
-  map<vtkIdType, int> sortedIds;
+  /* map<vtkIdType, int> sortedIds;
   for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     sortedIds[sortedIndices[i]] = i;
-  }
+  } */
+  //printf("finished sortedIds!\n");
+  //float* scalarData = (float*) getScalar(sgrid);
+  //printf("Got the scalarData!\n");
   SetMax = vector<vtkIdType>(sortedIndices.size());
   //iota(Set.begin(), Set.end(), 0);
   iota(SetMax.begin(), SetMax.end(), 0);
+  printf("finished iota setMax!\n");
   //iota(SetMin.begin(), SetMin.end(), 0);
-  for(unsigned int i = 0; i < sortedIndices.size(); ++i){
+  for(auto i = 0; i < sortedIndices.size(); ++i){
     node *ai = new node(i, sortedIndices[i]);
     joinTree.push_back(ai);
-    graph.push_back(new vNode());
-    graph[i]->jNode = ai;
+    //graph.push_back(new vNode());
+    //graph[i]->jNode = ai;
     // get the neighbors of ai
     vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(sortedIndices[i], sortedIndices);
+    //printf("Got connected vertices!\n");
+    if(i %10000 == 0)
+      printf("i = %d\n", i );
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds();++adj){
-      // index of adj in sortedIndices
-      vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
+      // value of adj 
+      vtkIdType vtkIdx = connectedVertices->GetId(adj);
+      auto j = distance(sortedIndices.begin(), find(sortedIndices.begin(), sortedIndices.end(), vtkIdx));
+      //printf("Got j!\n");
       if(j < i && findSet(SetMax, i) != findSet(SetMax, j)){
-        int k = findSet(SetMax, j);
-        graph[k]->jNode->parent = ai;
-        ai->children.push_back(graph[k]->jNode);
+        auto k = findSet(SetMax, j);
+        //graph[k]->jNode->parent = ai;
+        joinTree[k]->parent = ai;
+        //ai->children.push_back(graph[k]->jNode);
+        ai->children.push_back(joinTree[k]);
         ai->numChildren += 1;
         unionSet(SetMax, i, j);
       }
@@ -61,28 +75,32 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
 // Construct the split tree.
 void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
   // record [vtkId] = pos in sortedindices
-  map<vtkIdType, int> sortedIds;
+  /* map<vtkIdType, int> sortedIds;
   for(unsigned int i = 0; i < sortedIndices.size(); ++i){
     sortedIds[sortedIndices[i]] = i;
   }
-
+ */
   // iota(Set.begin(), Set.end(), 0);
   // iota(SetMax.begin(), SetMax.end(), 0);
   SetMin = vector<vtkIdType>(sortedIndices.size());
   iota(SetMin.begin(), SetMin.end(), 0);
-  for (int i = sortedIndices.size()-1; i >= 0; --i){
+  for (auto i = sortedIndices.size()-1; i >= 0; --i){
     node *bi = new node(i, sortedIndices[i]);
     splitTree.push_back(bi);
-    graph[i]->sNode = bi;
+    //graph[i]->sNode = bi;
     // get the neighbors of bi
     vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(sortedIndices[i], sortedIndices);
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds(); ++adj){
       // index of adj in sortedIndices
-      vtkIdType j = sortedIds[connectedVertices->GetId(adj)];
+      vtkIdType vtkIdx = connectedVertices->GetId(adj);
+      auto j = distance(sortedIndices.begin(), find(sortedIndices.begin(), sortedIndices.end(), vtkIdx));
+      printf("Got j!\n");
       if(j > i && findSet(SetMin, i) != findSet(SetMin, j)){
-        int k = findSet(SetMin, j);
-        graph[k]->sNode->parent = bi;
-        bi->children.push_back(graph[k]->sNode);
+        auto k = findSet(SetMin, j);
+        //graph[k]->sNode->parent = bi;
+        splitTree[k]->parent = bi;
+        //bi->children.push_back(graph[k]->sNode);
+        bi->children.push_back(splitTree[k]);
         bi->numChildren += 1;
         unionSet(SetMin, i,j);
       }
@@ -96,8 +114,8 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
 // Merge the split and join tree.
 void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree){
   
-  queue<int> Q;
-  for(unsigned int i = 0; i < joinTree.size(); ++i){
+  queue<long int> Q;
+  for(auto i = 0; i < joinTree.size(); ++i){
     node *ci = new node(i, joinTree[i]->vtkIdx);
     mergeTree.push_back(ci);
     if(joinTree[i]->numChildren + splitTree[i]->numChildren == 1){
@@ -106,9 +124,9 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
   }
 
   while (Q.size() > 1){
-    int i = Q.front();
+    auto i = Q.front();
     Q.pop();
-    int k;
+    long int k;
     if(joinTree[i]->numChildren == 0){
       k = joinTree[i]->parent->idx;
       mergeTree[i]->parent = mergeTree[k]; 
@@ -204,9 +222,9 @@ vtkSmartPointer<vtkIdList> MergeTree::getConnectedVertices(vtkIdType vertexId, c
   neighbors.erase(vertexId);
 
   // add the neighbors only in the given vertex set
-  set<vtkIdType> vertexSet(vertexList.begin(), vertexList.end());
+  //set<vtkIdType> vertexSet(vertexList.begin(), vertexList.end());
   for(auto it = neighbors.begin(); it != neighbors.end(); ++it){
-    if(vertexSet.find(*it) != vertexSet.end())
+    if(find(vertexList.begin(), vertexList.end(), *it) != vertexList.end())
       connectedVertices->InsertNextId(*it);
   }
 
@@ -221,10 +239,10 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
     highEndVertices.insert(it->second);   // the higher end vertex has the smaller scalar value
   }
 
-  map<vtkIdType,int> sortedIds;
-  for(unsigned int i = 0; i < mergeTree.size(); ++i){
+  /* map<vtkIdType,int> sortedIds;
+  for(long int i = 0; i < mergeTree.size(); ++i){
     sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
-  }
+  } */
   vector<vtkIdType> maxima;
   //iterate mergeTree to find local maximum
   for(auto node:mergeTree){
@@ -239,18 +257,26 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
 // Return the vertex within the superlevel component that has maximum scalar function value.
 vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
   // vector<vtkIdType> sortedIndices = argsort();
-  map<vtkIdType,int> sortedIds;
-  int treeSize = mergeTree.size();
+  /* map<vtkIdType,int> sortedIds;
+  
   for(int i = 0; i < treeSize; ++i){
     //sortedIds[sortedIndices[i]] = i;
     sortedIds[mergeTree[i]->vtkIdx] = mergeTree[i]->idx;
+  } */
+  //auto idx = sortedIds[v];
+
+  long int idx;
+  auto treeSize = mergeTree.size();
+  for(auto i = 0; i < treeSize; ++i){
+    if(mergeTree[i]->vtkIdx == v){
+      idx = i;
+    }
   }
-  int idx = sortedIds[v];
   queue<node*> nodes;
   set<vtkIdType> visitedVertices;
   float* scalarData = (float*) getScalar(sgrid);
 
-  int compMax = scalarData[v] < level ? treeSize:idx;
+  auto compMax = scalarData[v] < level ? treeSize:idx;
 
   nodes.push(mergeTree[idx]);
   while(nodes.size()){
