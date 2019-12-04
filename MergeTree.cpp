@@ -5,7 +5,7 @@ MergeTree::MergeTree(vtkImageData *p){
   sgrid = p;
   //Set = vector<int>(p->GetNumberOfPoints());
   //graph = vector<vNode*>(p->GetNumberOfPoints()， new vNode());
-  getEdgeList(edgeList);
+  //getEdgeList(edgeList);
 }
 
 // Build the merge tree.
@@ -307,10 +307,10 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
   return compMax == treeSize ? v : mergeTree[compMax]->vtkIdx;
 }
 
-void MergeTree::getEdgeList(vector<set<vtkIdType>> &edgeList){
+/* void MergeTree::getEdgeList(vector<set<vtkIdType>> &edgeList){
   //float *scalars = (float *)getScalar(sgrid);
   edgeList = vector<set<vtkIdType>>(sgrid->GetNumberOfPoints());
-  int cellNum = sgrid->GetNumberOfCells();
+  int cellNum = sgrid->GetNumberOfCells();
   for(int i = 0; i < cellNum; i++){
     // get the points of each cell
     vtkSmartPointer<vtkIdList> pointIdList = vtkSmartPointer<vtkIdList>::New();
@@ -323,4 +323,4 @@ void MergeTree::getEdgeList(vector<set<vtkIdType>> &edgeList){
       }
     }
   }
-}
+} */
