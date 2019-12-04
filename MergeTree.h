@@ -16,12 +16,12 @@ struct node{
 };
 
 // define graph node used in constructJoin and construcSplit
-/* struct vNode{
+struct vNode{
   vNode(){
   }
   node* jNode;
   node* sNode;
-}; */
+};
 
 /**
  * Merge Tree Class.
@@ -51,7 +51,7 @@ class MergeTree{
   private:
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree
-    //vector<vNode*> graph;
+    vector<vNode*> graph;
     
   public:
     vector<node*> mergeTree;

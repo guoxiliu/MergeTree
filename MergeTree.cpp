@@ -46,8 +46,8 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
   for(auto i = 0; i < sortedIndices.size(); ++i){
     node *ai = new node(i, sortedIndices[i]);
     joinTree.push_back(ai);
-    //graph.push_back(new vNode());
-    //graph[i]->jNode = ai;
+    graph.push_back(new vNode());
+    graph[i]->jNode = ai;
     // get the neighbors of ai
     vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(sortedIndices[i], sortedIndices);
     //printf("Got connected vertices!\n");
@@ -60,10 +60,10 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
       //printf("Got j!\n");
       if(j < i && findSet(SetMax, i) != findSet(SetMax, j)){
         auto k = findSet(SetMax, j);
-        //graph[k]->jNode->parent = ai;
-        joinTree[k]->parent = ai;
-        //ai->children.push_back(graph[k]->jNode);
-        ai->children.push_back(joinTree[k]);
+        graph[k]->jNode->parent = ai;
+        //joinTree[k]->parent = ai;
+        ai->children.push_back(graph[k]->jNode);
+        //ai->children.push_back(joinTree[k]);
         ai->numChildren += 1;
         unionSet(SetMax, i, j);
       }
@@ -84,23 +84,26 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
   // iota(SetMax.begin(), SetMax.end(), 0);
   SetMin = vector<vtkIdType>(sortedIndices.size());
   iota(SetMin.begin(), SetMin.end(), 0);
-  for (auto i = sortedIndices.size()-1; i >= 0; --i){
+  for (int i = sortedIndices.size()-1; i >= 0; --i){
     node *bi = new node(i, sortedIndices[i]);
     splitTree.push_back(bi);
-    //graph[i]->sNode = bi;
-    // get the neighbors of bi
+    //graph.push_back(new vNode());
+    graph[i]->sNode = bi;
+    //get the neighbors of bi
     vtkSmartPointer<vtkIdList> connectedVertices = getConnectedVertices(sortedIndices[i], sortedIndices);
+    if(i %10000 == 0)
+      printf("i = %ld\n", i );
     for(vtkIdType adj = 0; adj < connectedVertices->GetNumberOfIds(); ++adj){
       // index of adj in sortedIndices
       vtkIdType vtkIdx = connectedVertices->GetId(adj);
       auto j = distance(sortedIndices.begin(), find(sortedIndices.begin(), sortedIndices.end(), vtkIdx));
-      printf("Got j!\n");
+      //printf("Got j!\n");
       if(j > i && findSet(SetMin, i) != findSet(SetMin, j)){
         auto k = findSet(SetMin, j);
-        //graph[k]->sNode->parent = bi;
-        splitTree[k]->parent = bi;
-        //bi->children.push_back(graph[k]->sNode);
-        bi->children.push_back(splitTree[k]);
+        graph[k]->sNode->parent = bi;
+        //splitTree[k]->parent = bi;
+        bi->children.push_back(graph[k]->sNode);
+        //bi->children.push_back(splitTree[k]);
         bi->numChildren += 1;
         unionSet(SetMin, i,j);
       }
