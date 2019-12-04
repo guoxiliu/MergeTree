@@ -308,19 +308,19 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
 }
 
 void MergeTree::getEdgeList(vector<set<vtkIdType>> &edgeList){
-  float *scalars = (float *)getScalar(sgrid);
-  edgeList = vector<set<vtkIdType>>(sgrid->GetNumberOfPoints());
-  int cellNum = sgrid->GetNumberOfCells();
-  for(int i = 0; i < cellNum; i++){
-    // get the points of each cell
-    vtkSmartPointer<vtkIdList> pointIdList = vtkSmartPointer<vtkIdList>::New();
-    sgrid->GetCellPoints(i, pointIdList);
-    int cellSize = pointIdList->GetNumberOfIds();
-    for(vtkIdType j = 0; j < cellSize; ++j){
-      for(vtkIdType k = 0; k < cellSize ; ++k){
+  //float *scalars = (float *)getScalar(sgrid);
+  edgeList = vector<set<vtkIdType>>(sgrid->GetNumberOfPoints());
+  int cellNum = sgrid->GetNumberOfCells();
+  for(int i = 0; i < cellNum; i++){
+    // get the points of each cell
+    vtkSmartPointer<vtkIdList> pointIdList = vtkSmartPointer<vtkIdList>::New();
+    sgrid->GetCellPoints(i, pointIdList);
+    int cellSize = pointIdList->GetNumberOfIds();
+    for(vtkIdType j = 0; j < cellSize; ++j){
+      for(vtkIdType k = 0; k < cellSize ; ++k){
         if(k != j)
-          edgeList[pointIdList->GetId(j)].insert(pointIdList->GetId(k));
-      }
-    }
-  }
+        edgeList[pointIdList->GetId(j)].insert(pointIdList->GetId(k));
+      }
+    }
+  }
 }

@@ -47,7 +47,7 @@ class MergeTree{
     void constructSplit(vector<vtkIdType>&);  // Construct the split tree.
     void mergeJoinSplit(vector<node*>&, vector<node*>&);  // Merge the split and join tree.
     vtkSmartPointer<vtkIdList> getConnectedVertices(vtkIdType, const vector<vtkIdType>&);
-    void getEdgeList(vector<set<vtkIdType>>&)
+    void getEdgeList(vector<set<vtkIdType>>&);
   
   private:
     vector<node*> joinTree;   // Represent the join tree
