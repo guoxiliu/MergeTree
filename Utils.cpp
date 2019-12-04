@@ -51,7 +51,9 @@ vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkImageData* sgri
 /**
  * Find the set id of a given vertex id.
  */
-int findSet(vector<vtkIdType> &group, vtkIdType i){
+vtkIdType findSet(vector<vtkIdType> &group, vtkIdType i){
+  if(group[i] == -1)
+    return -1;
   if(group[i] == i)
     return i;
   group[i] = findSet(group, group[i]);
@@ -62,23 +64,9 @@ int findSet(vector<vtkIdType> &group, vtkIdType i){
  * Do union of two sets.
  */ 
 void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
-  
-  int iset = findSet(group, i);
-  int jset = findSet(group, j);
-  
-  if(i > j){ // union for SetMax
-    if(iset < jset){
-      group[iset] = jset;
-    }else{
-      group[jset] = iset;
-    }
-  }else{ // union for SetMin
-    if(iset < jset){
-      group[jset] = iset;
-    }else{
-      group[iset] = jset;
-    }
-  } 
+  vtkIdType iset = findSet(group, i);
+  vtkIdType jset = findSet(group, j);
+  group[i] = jset;
 }
 
 /**
