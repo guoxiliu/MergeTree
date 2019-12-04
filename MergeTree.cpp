@@ -55,6 +55,7 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
       }
     }
   }
+  printf("Join tree is built!\n");
 }
 
 // Construct the split tree.
@@ -89,6 +90,7 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
   }
   // reverse the order of split nodes from 0 to n-1
   reverse(splitTree.begin(), splitTree.end());
+  printf("Split tree is built!\n");
 }
 
 // Merge the split and join tree.
