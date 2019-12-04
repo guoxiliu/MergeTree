@@ -17,7 +17,7 @@ def numpy_to_vti(array, origin, spacing, filename):
     origin: `array like object`
         the origin of the array
     spacing: `array like object`
-        the step in each dimension
+        the step in eac  h dimension
     filename: str
         output filename (.vti)
 
@@ -46,7 +46,7 @@ def numpy_to_vti(array, origin, spacing, filename):
 
 # Read the raw file 
 dir_name = os.path.dirname(os.path.abspath(__file__))
-base_filename = "marschner_lobb_41x41x41_uint8"
+base_filename = "foot_256x256x256_uint8"
 filename_suffix = ".raw"
 
 inputfile = os.path.join(dir_name, base_filename + filename_suffix)
@@ -54,7 +54,7 @@ print("Reading from " + inputfile)
 
 # Set arguments for the function
 scalars = np.fromfile(inputfile, dtype='uint8')
-scalars = np.reshape(scalars, (41, 41, 41))
+scalars = np.reshape(scalars, (256, 256, 256))
 
 origin = (0, 0, 0)
 spacing = (1, 1, 1)

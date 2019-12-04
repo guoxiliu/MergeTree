@@ -5,21 +5,32 @@
 
 using namespace std;
 
-struct superArc{
-  superArc *parent;
-  vector<superArc*> children;
-  list<vtkIdType> vertexList;
 
-  superArc():parent(nullptr){}
+// struct superArc{
+//   superArc *parent;
+//   vector<superArc*> children;
+//   list<vtkIdType> vertexList;
+
+//   superArc():parent(nullptr){}
+// };
+
+struct node{
+  vtkIdType vtkIdx;
+  node *parent;
+  vector<node *> children;
+  // superArc *inArc;
+  // superArc *outArc;
+
+  node(vtkIdType id):vtkIdx(id), parent(nullptr), children(vector<node *>()){}
 };
 
 // define the tree node in merge tree algorithm 
-struct node{
-  node(vtkIdType vtkId):vtkIdx(vtkId),parent(nullptr){}
-  vtkIdType vtkIdx;
-  node* parent;
-  vector<node*> children;
-};
+// struct node{
+//   node(vtkIdType vtkId):vtkIdx(vtkId),parent(nullptr){}
+//   vtkIdType vtkIdx;
+//   node* parent;
+//   vector<node*> children;
+// };
 
 /**
  * Merge Tree Class.
@@ -28,7 +39,8 @@ struct node{
  */ 
 class MergeTree{
   public:
-    MergeTree(vtkImageData *p);
+    MergeTree(vtkImageData*);
+    MergeTree(vtkImageData*, vector<vtkIdType>);
     int build();  // Wrap function for compute JT, ST and CT
     int build(vector<vtkIdType>&);
 
@@ -41,16 +53,18 @@ class MergeTree{
     // vector<vtkIdType> SetMax;
 
   private:
+    vector<vtkIdType> vertexList;
     void constructJoin(vector<vtkIdType>&);   // Construct the join tree.
     void constructSplit(vector<vtkIdType>&);  // Construct the split tree.
     void mergeJoinSplit(vector<node*>&, vector<node*>&);  // Merge the split and join tree.
     vector<vtkIdType> getLowerLinks(vtkIdType);
+    vector<vtkIdType> getUpperLinks(vtkIdType);
   
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree
     vector<node*> mergeTree;
     // vector<vNode*> graph;
-    map<vtkIdType, superArc*> vertexArcMap;
+    // map<vtkIdType, superArc*> vertexArcMap;
 };
 
 

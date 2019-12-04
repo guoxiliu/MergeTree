@@ -36,13 +36,13 @@ int main ( int argc, char *argv[] )
   testTree.build();
 
   // Test the queries here.
-  set<pair<vtkIdType, vtkIdType>> emptyBridgeSet;
-  vector<vtkIdType> maxima = testTree.MaximaQuery(emptyBridgeSet);
+  // set<pair<vtkIdType, vtkIdType>> emptyBridgeSet;
+  // vector<vtkIdType> maxima = testTree.MaximaQuery(emptyBridgeSet);
 
-  printf("The size of the maxima is %zu\n", maxima.size());
-  for (unsigned int i = 0; i < maxima.size(); i++) {
-    printf("maxima[%u]: %lld\n", i, maxima[i]);
-  }
+  // printf("The size of the maxima is %zu\n", maxima.size());
+  // for (unsigned int i = 0; i < maxima.size(); i++) {
+  //   printf("maxima[%u]: %lld\n", i, maxima[i]);
+  // }
 
   return EXIT_SUCCESS;
 }
