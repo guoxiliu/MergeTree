@@ -14,10 +14,30 @@ MergeTree::MergeTree(vtkImageData *p, vector<vtkIdType> idlist){
 
 // Build the merge tree.
 int MergeTree::build(){
+  auto start = chrono::high_resolution_clock::now();
   vector<vtkIdType> sortedIndices = argsort(vertexList, sgrid);
+  auto stop = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "Sort cost: " << duration.count() << " microseconds" <<endl;
+  
+  start = chrono::high_resolution_clock::now();
   constructJoin(sortedIndices);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "Join tree cost: " << duration.count() << " microseconds" <<endl;
+  
+  start = chrono::high_resolution_clock::now();
   constructSplit(sortedIndices);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "Split tree cost: " << duration.count() << " microseconds" <<endl;
+  
+  start = chrono::high_resolution_clock::now();
   mergeJoinSplit(joinTree, splitTree);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "Merge Join Split cost: " << duration.count() << " microseconds" <<endl;
+  
   return 0;
 }
 
