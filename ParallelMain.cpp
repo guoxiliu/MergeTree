@@ -40,7 +40,11 @@ int main ( int argc, char *argv[] )
 
   // Test merge tree
   MergeTree testTree(sgrid);
+  auto start = chrono::high_resolution_clock::now();
   testTree.build();
+  auto stop = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+
   decompose(threadNum, sgrid, regions, globalBridgeSet);
   
   // Test the domain decomposition and global bridge set
@@ -73,6 +77,7 @@ int main ( int argc, char *argv[] )
 
   
   // OpenMP routine
+  // auto start = chrono::high_resolution_clock::now();
   // vector<vtkIdType> maxima;   // use for maxima query
   // omp_set_num_threads(threadNum);
   // #pragma omp parallel
@@ -83,7 +88,7 @@ int main ( int argc, char *argv[] )
   //     // printf("Thread id = %d\n", tid);
 
   //     // Construct the local merge tree with the vertex set
-  //     MergeTree localMergeTree(sgrid, regions[tid], getLocalBridgeSet(reducedGlobalBS, regions[tid]));
+  //     MergeTree localMergeTree(sgrid, regions[tid]);
   //     localMergeTree.build();
       
   //     // Construct the reduced bridge set
@@ -98,6 +103,10 @@ int main ( int argc, char *argv[] )
   //   //   printf("Number of threads = %d\n", nthreads);
   //   // }
   // }
+
+  // auto stop = chrono::high_resolution_clock::now();
+  // auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  // printf("Build tree cost: %lld\n", duration.count());
 
   // printf("The size of the maxima is %zu\n", maxima.size());
   // for (unsigned int i = 0; i < maxima.size(); i++) {

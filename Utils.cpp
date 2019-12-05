@@ -19,9 +19,9 @@ vector<size_t> indexSort(const vector<vtkIdType>& vertexList, vtkImageData* sgri
   iota(idx.begin(), idx.end(), 0);
 
   if(increasing){
-    sort(idx.begin(), idx.end(), [scalarData, vertexList](vtkIdType i1, vtkIdType i2) {return scalarData[vertexList[i1]] < scalarData[vertexList[i2]];});
+    stable_sort(idx.begin(), idx.end(), [scalarData, vertexList](vtkIdType i1, vtkIdType i2) {return scalarData[vertexList[i1]] < scalarData[vertexList[i2]];});
   }else{
-    sort(idx.begin(), idx.end(), [scalarData, vertexList](vtkIdType i1, vtkIdType i2) {return scalarData[vertexList[i1]] > scalarData[vertexList[i2]];});
+    stable_sort(idx.begin(), idx.end(), [scalarData, vertexList](vtkIdType i1, vtkIdType i2) {return scalarData[vertexList[i1]] > scalarData[vertexList[i2]];});
   }
   return idx;
 }

@@ -16,10 +16,30 @@ MergeTree::MergeTree(vtkImageData *p, vector<vtkIdType> idlist){
 
 // Build the merge tree.
 int MergeTree::build(){
+  auto start = chrono::high_resolution_clock::now();
   vector<size_t> sortedIndices = indexSort(vertexList, sgrid);
+  auto stop = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  printf("Index sort cost: %lld\n", duration.count());
+
+  start = chrono::high_resolution_clock::now();
   constructJoin(sortedIndices);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  printf("Join tree cost: %lld\n", duration.count());
+
+  start = chrono::high_resolution_clock::now();
   constructSplit(sortedIndices);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  printf("Split tree cost: %lld\n", duration.count());
+
+  start = chrono::high_resolution_clock::now();
   mergeJoinSplit(joinTree, splitTree);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  printf("Merge tree cost: %lld\n", duration.count());
+  
   return 0;
 }
 
@@ -30,16 +50,20 @@ void MergeTree::constructJoin(vector<size_t>& sortedIndices){
   vector<vtkIdType> component(regionSize, -1);
 
   joinTree = vector<node*>(regionSize, nullptr);
-  for(auto idx = sortedIndices.begin(); idx != sortedIndices.end(); idx++){
-    node *newnode = new node(vertexList[*idx]);
-    joinTree[*idx] = newnode;
+  for(int i = 0; i < regionSize; i++){
+    size_t idx = sortedIndices[i];
+    node *newnode = new node(vertexList[idx]);
+    joinTree[idx] = newnode;
 
     vector<vtkIdType> neighbors = getConnectedVertices(newnode->vtkIdx);
     for(vtkIdType &vj : neighbors){
-      // find the set of vi and vj
-      // the scalar value of j should be lower
-      if(scalars[vj] < scalars[vertexList[*idx]] && vj >= vertexList.front() && vj <= vertexList.back()){
-        vtkIdType iset = findSet(component, *idx);
+      // see if the vertex is in the range
+      if(vj < vertexList.front() || vj > vertexList.back()) 
+        continue;
+      if((scalars[vj] < scalars[newnode->vtkIdx]) || (scalars[vj] == scalars[newnode->vtkIdx] && vj < newnode->vtkIdx)){
+        // find the set of vi and vj
+        // the scalar value of j should be lower
+        vtkIdType iset = findSet(component, idx);
         vtkIdType jset = findSet(component, vj-vertexList.front());
 
         if(iset != jset){
@@ -60,23 +84,26 @@ void MergeTree::constructSplit(vector<size_t>& sortedIndices){
   vector<vtkIdType> component(regionSize, -1);
 
   splitTree = vector<node*>(regionSize, nullptr);
-  for(auto idx = sortedIndices.rbegin(); idx != sortedIndices.rend(); idx++){
-    node *newnode = new node(vertexList[*idx]);
-    splitTree[*idx] = newnode;
+  for(int i = regionSize-1; i >= 0; i++){
+    size_t idx = sortedIndices[i];
+    node *newnode = new node(vertexList[idx]);
+    splitTree[idx] = newnode;
 
     vector<vtkIdType> neighbors = getConnectedVertices(newnode->vtkIdx);
     for(vtkIdType &vj : neighbors){
       // find the set of vi and vj
       // the scalar value of j should be greater
-      if(scalars[vj] > scalars[vertexList[*idx]] && vj >= vertexList.front() && vj <= vertexList.back()){
-        vtkIdType iset = findSet(component, *idx);
-        vtkIdType jset = findSet(component, vj-vertexList.front());
+      if (vj < vertexList.front() || vj > vertexList.back())
+        continue;
+      if((scalars[vj] > scalars[newnode->vtkIdx]) || (scalars[vj] == scalars[newnode->vtkIdx] && vj > newnode->vtkIdx)){
+          vtkIdType iset = findSet(component, idx);
+          vtkIdType jset = findSet(component, vj-vertexList.front());
 
-        if(iset != jset){
-          splitTree[jset]->parent = splitTree[iset];
-          splitTree[iset]->children.push_back(splitTree[jset]);
-          unionSet(component, iset, jset);
-        }
+          if(iset != jset){
+            splitTree[jset]->parent = splitTree[iset];
+            splitTree[iset]->children.push_back(splitTree[jset]);
+            unionSet(component, iset, jset);
+          }
       }
     }
   }

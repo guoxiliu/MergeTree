@@ -32,8 +32,6 @@ class MergeTree{
     MergeTree(vtkImageData*);
     MergeTree(vtkImageData*, vector<vtkIdType>);
     int build();  // Wrap function for compute JT, ST and CT
-    int build(vector<vtkIdType>&);
-
     vector<vtkIdType> MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &);   // return all local maxima in the simplicial complex
     vtkIdType ComponentMaximumQuery(vtkIdType&, float&);  // return vertexId within the superlevel component that has maximum scalar function value
   
