@@ -80,30 +80,25 @@ void decompose(int numThreads, vtkImageData *sgrid, vector<vector<vtkIdType>> &r
   regions[numThreads-1] = vector<vtkIdType>(regionPoints + totalVertices%numThreads);
   iota(regions[numThreads-1].begin(), regions[numThreads-1].end(), startId);
 
-  // loop all the cells in the grid
-  // gBridgeSet = set<pair<vtkIdType, vtkIdType>>();
-  // vtkIdType totalCells = sgrid->GetNumberOfCells();
-  // for(vtkIdType i = 0; i < totalCells; i++){
-  //   vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
-  //   sgrid->GetCellPoints(i, cellPointIds);
-  //   vtkIdType cellSize = cellPointIds->GetNumberOfIds();
-  //   vector<int> regionIds(cellSize);
-  //   for(vtkIdType j = 0; j < cellSize; j++){
-  //     regionIds[j] = vertexRegions[cellPointIds->GetId(j)];
-  //   }
+  // Create the global bridge set
+  float *scalars = (float *)getScalar(sgrid);
+  gBridgeSet = set<pair<vtkIdType, vtkIdType>>();
+  vtkIdType totalCells = sgrid->GetNumberOfCells();
 
-  //   // see if all the vertices of the cell are in the same region
-  //   for(vtkIdType j = 0; j < cellSize-1; j++){
-  //     for(vtkIdType k = j+1; k < cellSize; k++){
-  //       if(regionIds[j] != regionIds[k]){
-  //         pair<vtkIdType, vtkIdType> edge(cellPointIds->GetId(j), cellPointIds->GetId(k));
-  //         if(scalars[edge.first] > scalars[edge.second]) 
-  //           swap(edge.first, edge.second);
-  //         gBridgeSet.insert(edge);
-  //       }
-  //     }
-  //   }
-  // }
+  // loop all the cells in the grid
+  for(vtkIdType i = 0; i < totalCells; i++){
+  vtkCell *cell = sgrid->GetCell(i);
+    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
+      vtkCell *cellEdge = cell->GetEdge(e);
+      vtkIdList *pointIdList = cellEdge->GetPointIds();
+      if(pointIdList->GetId(0)/regionPoints != pointIdList->GetId(1)/regionPoints){
+        pair<vtkIdType, vtkIdType> edge(pointIdList->GetId(0), pointIdList->GetId(1));
+        if(scalars[edge.first] > scalars[edge.second]) 
+            swap(edge.first, edge.second);
+        gBridgeSet.insert(edge);
+      }
+    }
+  }
 }
 
 /**

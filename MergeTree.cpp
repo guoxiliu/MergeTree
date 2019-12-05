@@ -16,29 +16,29 @@ MergeTree::MergeTree(vtkImageData *p, vector<vtkIdType> idlist){
 
 // Build the merge tree.
 int MergeTree::build(){
-  auto start = chrono::high_resolution_clock::now();
+  // auto start = chrono::high_resolution_clock::now();
   vector<size_t> sortedIndices = indexSort(vertexList, sgrid);
-  auto stop = chrono::high_resolution_clock::now();
-  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-  printf("Index sort cost: %lld\n", duration.count());
+  // auto stop = chrono::high_resolution_clock::now();
+  // auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  // printf("Index sort cost: %lld\n", duration.count());
 
-  start = chrono::high_resolution_clock::now();
+  // start = chrono::high_resolution_clock::now();
   constructJoin(sortedIndices);
-  stop = chrono::high_resolution_clock::now();
-  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-  printf("Join tree cost: %lld\n", duration.count());
+  // stop = chrono::high_resolution_clock::now();
+  // duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  // printf("Join tree cost: %lld\n", duration.count());
 
-  start = chrono::high_resolution_clock::now();
+  // start = chrono::high_resolution_clock::now();
   constructSplit(sortedIndices);
-  stop = chrono::high_resolution_clock::now();
-  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-  printf("Split tree cost: %lld\n", duration.count());
+  // stop = chrono::high_resolution_clock::now();
+  // duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  // printf("Split tree cost: %lld\n", duration.count());
 
-  start = chrono::high_resolution_clock::now();
+  // start = chrono::high_resolution_clock::now();
   mergeJoinSplit(joinTree, splitTree);
-  stop = chrono::high_resolution_clock::now();
-  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-  printf("Merge tree cost: %lld\n", duration.count());
+  // stop = chrono::high_resolution_clock::now();
+  // duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  // printf("Merge tree cost: %lld\n", duration.count());
   
   return 0;
 }
@@ -74,7 +74,7 @@ void MergeTree::constructJoin(vector<size_t>& sortedIndices){
       }
     }
   }
-  printf("Join tree built!\n");
+  // printf("Join tree built!\n");
 }
 
 // Construct the split tree.
@@ -107,7 +107,7 @@ void MergeTree::constructSplit(vector<size_t>& sortedIndices){
       }
     }
   }
-  printf("Split tree created!\n");
+  // printf("Split tree created!\n");
 }
 
 
@@ -184,7 +184,7 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
     }
   }
 
-  printf("Merge tree built!\n");
+  // printf("Merge tree built!\n");
 }
 
 

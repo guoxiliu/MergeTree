@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <float.h>
 #include <stdio.h>
+#include <vtkCell.h>
 #include <vtkIdList.h>
 #include <vtkDataArray.h>
 #include <vtkPointData.h>
