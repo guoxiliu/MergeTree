@@ -18,19 +18,9 @@ struct node{
   vtkIdType vtkIdx;
   node *parent;
   vector<node *> children;
-  // superArc *inArc;
-  // superArc *outArc;
-
   node(vtkIdType id):vtkIdx(id), parent(nullptr), children(vector<node *>()){}
 };
 
-// define the tree node in merge tree algorithm 
-// struct node{
-//   node(vtkIdType vtkId):vtkIdx(vtkId),parent(nullptr){}
-//   vtkIdType vtkIdx;
-//   node* parent;
-//   vector<node*> children;
-// };
 
 /**
  * Merge Tree Class.
@@ -49,8 +39,6 @@ class MergeTree{
   
   protected:
     vtkImageData* sgrid;  // Unstructed grid
-    // vector<vtkIdType> SetMin;
-    // vector<vtkIdType> SetMax;
 
   private:
     vector<vtkIdType> vertexList;
@@ -62,9 +50,7 @@ class MergeTree{
   
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree
-    vector<node*> mergeTree;
-    // vector<vNode*> graph;
-    // map<vtkIdType, superArc*> vertexArcMap;
+    vector<node*> mergeTree;   
 };
 
 
