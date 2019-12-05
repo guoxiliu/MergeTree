@@ -5,23 +5,22 @@
 
 using namespace std;
 
-// define the tree node in merge tree algorithm 
+
+// struct superArc{
+//   superArc *parent;
+//   vector<superArc*> children;
+//   list<vtkIdType> vertexList;
+
+//   superArc():parent(nullptr){}
+// };
+
 struct node{
-  node(long int id, vtkIdType vtkId):idx(id),vtkIdx(vtkId),numChildren(0),parent(nullptr){}
-  long int idx;
   vtkIdType vtkIdx;
-  int numChildren;
-  node* parent;
-  vector<node*> children;
+  node *parent;
+  vector<node *> children;
+  node(vtkIdType id):vtkIdx(id), parent(nullptr), children(vector<node *>()){}
 };
 
-// define graph node used in constructJoin and construcSplit
-struct vNode{
-  vNode(){
-  }
-  node* jNode;
-  node* sNode;
-};
 
 /**
  * Merge Tree Class.
@@ -30,7 +29,8 @@ struct vNode{
  */ 
 class MergeTree{
   public:
-    MergeTree(vtkImageData *p);
+    MergeTree(vtkImageData*);
+    MergeTree(vtkImageData*, vector<vtkIdType>);
     int build();  // Wrap function for compute JT, ST and CT
     int build(vector<vtkIdType>&);
 
@@ -39,22 +39,18 @@ class MergeTree{
   
   protected:
     vtkImageData* sgrid;  // Unstructed grid
-    vector<vtkIdType> SetMin;
-    vector<vtkIdType> SetMax;
 
   private:
+    vector<vtkIdType> vertexList;
     void constructJoin(vector<vtkIdType>&);   // Construct the join tree.
     void constructSplit(vector<vtkIdType>&);  // Construct the split tree.
     void mergeJoinSplit(vector<node*>&, vector<node*>&);  // Merge the split and join tree.
-    vtkSmartPointer<vtkIdList> getConnectedVertices(vtkIdType, const vector<vtkIdType> &);
+    vector<vtkIdType> getLowerLinks(vtkIdType);
+    vector<vtkIdType> getUpperLinks(vtkIdType);
   
-  private:
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree
-    vector<vNode*> graph;
-    
-  public:
-    vector<node*> mergeTree;
+    vector<node*> mergeTree;   
 };
 
 

@@ -3,6 +3,7 @@
 
 #include <set>
 #include <map>
+#include <list>
 #include <queue>
 #include <vector>
 #include <numeric>
@@ -19,7 +20,7 @@
 using namespace std;
 
 void* getScalar(vtkImageData*);
-int findSet(vector<vtkIdType> &, vtkIdType);
+vtkIdType findSet(vector<vtkIdType> &, vtkIdType);
 void unionSet(vector<vtkIdType> &, vtkIdType, vtkIdType);
 vector<vtkIdType> argsort(const vector<vtkIdType>&, vtkImageData*, bool=true);
 void bisect(int, int, vtkImageData *, vector<vector<vtkIdType>> &);

@@ -14,36 +14,12 @@ void* getScalar(vtkImageData* sgrid) {
  * Sort the scalar values while keeping track of the indices.
  */ 
 vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkImageData* sgrid, bool increasing){
+  float *scalarData = (float*)getScalar(sgrid);
   vector<vtkIdType> sortedVertices(vertexSet.begin(), vertexSet.end());
-  vtkDataArray *scalarfield = sgrid->GetPointData()->GetArray(0);
-  switch(scalarfield->GetDataType()){
-    case VTK_FLOAT:
-    {
-      float *scalarData = (float *)scalarfield->GetVoidPointer(0);
-      //float *scalarData = (float*) getScalar();
-      if(increasing){
-        sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
-      }else{
-        sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
-      }
-      break;
-    }
-    case VTK_DOUBLE:
-    {
-      double *scalarData = (double *)scalarfield->GetVoidPointer(0);
-      //double* scalarData = (double*) getScalar();
-      if(increasing){
-        sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
-      }else{
-        sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
-      }
-      break;
-    }
-    default:
-    {
-      cout << "Type of scalarfield: " << scalarfield->GetDataType() << ", " << scalarfield->GetDataTypeAsString() << endl;
-      break;
-    }
+  if(increasing){
+    stable_sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+  }else{
+    stable_sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
   }
   return sortedVertices;
 }
@@ -51,8 +27,8 @@ vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkImageData* sgri
 /**
  * Find the set id of a given vertex id.
  */
-int findSet(vector<vtkIdType> &group, vtkIdType i){
-  if(group[i] == i)
+vtkIdType findSet(vector<vtkIdType> &group, vtkIdType i){
+  if(group[i] == -1)
     return i;
   group[i] = findSet(group, group[i]);
   return group[i];
@@ -62,23 +38,9 @@ int findSet(vector<vtkIdType> &group, vtkIdType i){
  * Do union of two sets.
  */ 
 void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
-  
-  int iset = findSet(group, i);
-  int jset = findSet(group, j);
-  
-  if(i > j){ // union for SetMax
-    if(iset < jset){
-      group[iset] = jset;
-    }else{
-      group[jset] = iset;
-    }
-  }else{ // union for SetMin
-    if(iset < jset){
-      group[jset] = iset;
-    }else{
-      group[iset] = jset;
-    }
-  } 
+  vtkIdType iset = findSet(group, i);
+  vtkIdType jset = findSet(group, j);
+  group[jset] = iset;
 }
 
 /**
