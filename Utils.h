@@ -22,6 +22,7 @@ using namespace std;
 void* getScalar(vtkImageData*);
 vtkIdType findSet(vector<vtkIdType> &, vtkIdType);
 void unionSet(vector<vtkIdType> &, vtkIdType, vtkIdType);
+vector<size_t> indexSort(const vector<vtkIdType>&, vtkImageData*, bool=true);
 vector<vtkIdType> argsort(const vector<vtkIdType>&, vtkImageData*, bool=true);
 void bisect(int, int, vtkImageData *, vector<vector<vtkIdType>> &);
 void decompose(int, vtkImageData *, vector<vector<vtkIdType>> &, set<pair<vtkIdType, vtkIdType>> &);

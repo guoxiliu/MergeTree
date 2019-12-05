@@ -12,10 +12,26 @@ void* getScalar(vtkImageData* sgrid) {
 
 /**
  * Sort the scalar values while keeping track of the indices.
- */ 
-vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkImageData* sgrid, bool increasing){
+ */  
+vector<size_t> indexSort(const vector<vtkIdType>& vertexList, vtkImageData* sgrid, bool increasing){
   float *scalarData = (float*)getScalar(sgrid);
-  vector<vtkIdType> sortedVertices(vertexSet.begin(), vertexSet.end());
+  vector<size_t> idx(vertexList.size());
+  iota(idx.begin(), idx.end(), 0);
+
+  if(increasing){
+    sort(idx.begin(), idx.end(), [scalarData, vertexList](vtkIdType i1, vtkIdType i2) {return scalarData[vertexList[i1]] < scalarData[vertexList[i2]];});
+  }else{
+    sort(idx.begin(), idx.end(), [scalarData, vertexList](vtkIdType i1, vtkIdType i2) {return scalarData[vertexList[i1]] > scalarData[vertexList[i2]];});
+  }
+  return idx;
+}
+
+/**
+ * Sort the scalar values while keeping track of the indices.
+ */ 
+vector<vtkIdType> argsort(const vector<vtkIdType>& vertexList, vtkImageData* sgrid, bool increasing){
+  float *scalarData = (float*)getScalar(sgrid);
+  vector<vtkIdType> sortedVertices(vertexList.begin(), vertexList.end());
   if(increasing){
     stable_sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
   }else{
@@ -44,47 +60,6 @@ void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
 }
 
 /**
- * Recursive bisection.
- */
-void bisect(int count, int idx, vtkImageData *sgrid, vector<vector<vtkIdType>> &regions){
-
-  if(count <= 0) return;
-
-  vector<vector<vtkIdType>> newRegions;
-
-  // loop through every region
-  for(unsigned int i = 0; i < regions.size(); i++){
-    // find the minimum and maximum idx coordinates
-    double minVal = DBL_MAX, maxVal = DBL_MIN;
-    vtkIdType totalPoints = regions[i].size();
-
-    // find the minimum and maximum coordinate value of current region.
-    for(vtkIdType j = 0; j < totalPoints; j++){
-      double xyz[3];
-      sgrid->GetPoint(regions[i][j], xyz);
-      if(xyz[idx] < minVal) minVal = xyz[idx];
-      if(xyz[idx] > maxVal) maxVal = xyz[idx];
-    }
-
-    // bisect the current region
-    double center = (minVal + maxVal) / 2.0;
-    vector<vtkIdType> first, second;
-    for(vtkIdType j = 0; j < totalPoints; j++){
-      double xyz[3];
-      sgrid->GetPoint(regions[i][j], xyz);
-      if(xyz[idx] < center) first.push_back(regions[i][j]);
-      else second.push_back(regions[i][j]);
-    }
-    newRegions.push_back(first);
-    newRegions.push_back(second);
-  }
-
-  // do bisection for the next dimension
-  regions = newRegions;
-  bisect(count/2, (idx+1)%3, sgrid, regions);
-}
-
-/**
  * Decompose the domain according to the number of threads.
  * Also create the global bridge set at the same time.
  */ 
@@ -92,47 +67,43 @@ void decompose(int numThreads, vtkImageData *sgrid, vector<vector<vtkIdType>> &r
 
   // initialize regions
   vtkIdType totalVertices = sgrid->GetNumberOfPoints();
-  regions = vector<vector<vtkIdType>>(1, vector<vtkIdType>(totalVertices));
-  iota(regions[0].begin(), regions[0].end(), 0);
+  vtkIdType regionPoints = totalVertices / numThreads;
+  regions = vector<vector<vtkIdType>>(numThreads);
 
-  // partition the vertices into different regions
-  bisect(numThreads/2, 0, sgrid, regions);
-
-
-  // create the vertex-region map
-  unordered_map<vtkIdType, int> vertexRegions;
-  for(unsigned int i = 0; i < regions.size(); i++){
-    for(unsigned int j = 0; j < regions[i].size(); j++){
-      vertexRegions[regions[i][j]] = i;
-    }
+  vtkIdType startId = 0;
+  for(int i = 0; i < numThreads-1; i++){
+    regions[i] = vector<vtkIdType>(regionPoints);
+    iota(regions[i].begin(), regions[i].end(), startId);
+    startId += regionPoints;
   }
 
-  float *scalars = (float *)getScalar(sgrid);
+  regions[numThreads-1] = vector<vtkIdType>(regionPoints + totalVertices%numThreads);
+  iota(regions[numThreads-1].begin(), regions[numThreads-1].end(), startId);
 
   // loop all the cells in the grid
-  gBridgeSet = set<pair<vtkIdType, vtkIdType>>();
-  vtkIdType totalCells = sgrid->GetNumberOfCells();
-  for(vtkIdType i = 0; i < totalCells; i++){
-    vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
-    sgrid->GetCellPoints(i, cellPointIds);
-    vtkIdType cellSize = cellPointIds->GetNumberOfIds();
-    vector<int> regionIds(cellSize);
-    for(vtkIdType j = 0; j < cellSize; j++){
-      regionIds[j] = vertexRegions[cellPointIds->GetId(j)];
-    }
+  // gBridgeSet = set<pair<vtkIdType, vtkIdType>>();
+  // vtkIdType totalCells = sgrid->GetNumberOfCells();
+  // for(vtkIdType i = 0; i < totalCells; i++){
+  //   vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
+  //   sgrid->GetCellPoints(i, cellPointIds);
+  //   vtkIdType cellSize = cellPointIds->GetNumberOfIds();
+  //   vector<int> regionIds(cellSize);
+  //   for(vtkIdType j = 0; j < cellSize; j++){
+  //     regionIds[j] = vertexRegions[cellPointIds->GetId(j)];
+  //   }
 
-    // see if all the vertices of the cell are in the same region
-    for(vtkIdType j = 0; j < cellSize-1; j++){
-      for(vtkIdType k = j+1; k < cellSize; k++){
-        if(regionIds[j] != regionIds[k]){
-          pair<vtkIdType, vtkIdType> edge(cellPointIds->GetId(j), cellPointIds->GetId(k));
-          if(scalars[edge.first] < scalars[edge.second]) 
-            swap(edge.first, edge.second);
-          gBridgeSet.insert(edge);
-        }
-      }
-    }
-  }
+  //   // see if all the vertices of the cell are in the same region
+  //   for(vtkIdType j = 0; j < cellSize-1; j++){
+  //     for(vtkIdType k = j+1; k < cellSize; k++){
+  //       if(regionIds[j] != regionIds[k]){
+  //         pair<vtkIdType, vtkIdType> edge(cellPointIds->GetId(j), cellPointIds->GetId(k));
+  //         if(scalars[edge.first] > scalars[edge.second]) 
+  //           swap(edge.first, edge.second);
+  //         gBridgeSet.insert(edge);
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 /**
@@ -157,15 +128,14 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
   // initialize
   set<pair<vtkIdType, vtkIdType>> reducedBS;
   int regionSize = vertexList.size();
-  vector<vtkIdType> component(sgrid->GetNumberOfPoints());
-  iota(component.begin(), component.end(), 0);
+  vector<vtkIdType> component(sgrid->GetNumberOfPoints(), -1);
   float *scalars = (float *)getScalar(sgrid);
 
   vector<vtkIdType> sortedVertices = argsort(vertexList, sgrid, false);
   // loop the vetex ids in decreasing order
   for(int i = 0; i < regionSize; i++){
-   // build the super link set of the current vertex id
-   vector<vtkIdType> superLinks;
+   // build the upper link set of the current vertex id
+   vector<vtkIdType> upperLinks;
    // first get the cells incident to the vertex
    vtkSmartPointer<vtkIdList> pointCellIds = vtkSmartPointer<vtkIdList>::New();
    sgrid->GetPointCells(sortedVertices[i], pointCellIds);
@@ -177,14 +147,14 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
      vtkIdType cellSize = cellPointIds->GetNumberOfIds();
      for(vtkIdType k = 0; k < cellSize; k++){
        // see if the scalar value is greater than the current one
-       if(scalars[cellPointIds->GetId(k)] < scalars[sortedVertices[i]]){
-         superLinks.push_back(cellPointIds->GetId(k));
+       if(scalars[cellPointIds->GetId(k)] > scalars[sortedVertices[i]]){
+         upperLinks.push_back(cellPointIds->GetId(k));
        }
      }
    }
    
    // connect inside region
-   for(vtkIdType &j:superLinks){
+   for(vtkIdType &j:upperLinks){
      pair<vtkIdType, vtkIdType> edge(sortedVertices[i], j);
      if(bridgeSet.find(edge) == bridgeSet.end()){
        unionSet(component, sortedVertices[i], j);
@@ -192,7 +162,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
    }
 
    // connect between regions
-   for(vtkIdType &j:superLinks){
+   for(vtkIdType &j:upperLinks){
      if(findSet(component, sortedVertices[i]) != findSet(component, j)){
        unionSet(component, sortedVertices[i], j);
        reducedBS.insert(pair<vtkIdType, vtkIdType>(vertexList[i], j));

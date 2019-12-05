@@ -5,16 +5,18 @@ MergeTree::MergeTree(vtkImageData *p){
   sgrid = p;
   vertexList = vector<vtkIdType>(sgrid->GetNumberOfPoints());
   iota(vertexList.begin(), vertexList.end(), 0);
+  sgrid->GetDimensions(dimension);
 }
 
 MergeTree::MergeTree(vtkImageData *p, vector<vtkIdType> idlist){
   sgrid = p;
   vertexList = idlist;
+  sgrid->GetDimensions(dimension);
 }
 
 // Build the merge tree.
 int MergeTree::build(){
-  vector<vtkIdType> sortedIndices = argsort(vertexList, sgrid);
+  vector<size_t> sortedIndices = indexSort(vertexList, sgrid);
   constructJoin(sortedIndices);
   constructSplit(sortedIndices);
   mergeJoinSplit(joinTree, splitTree);
@@ -22,26 +24,29 @@ int MergeTree::build(){
 }
 
 // Construct the join tree.
-void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
+void MergeTree::constructJoin(vector<size_t>& sortedIndices){
+  float *scalars = (float *)getScalar(sgrid);
   int regionSize = sortedIndices.size();
   vector<vtkIdType> component(regionSize, -1);
 
   joinTree = vector<node*>(regionSize, nullptr);
-  for(int i = 0; i < regionSize; i++){
-    node *newnode = new node(sortedIndices[i]);
-    joinTree.at(sortedIndices[i]) = newnode;
+  for(auto idx = sortedIndices.begin(); idx != sortedIndices.end(); idx++){
+    node *newnode = new node(vertexList[*idx]);
+    joinTree[*idx] = newnode;
 
-    vector<vtkIdType> lowerLinks = getLowerLinks(sortedIndices[i]);
-    for(vtkIdType &vj : lowerLinks){
+    vector<vtkIdType> neighbors = getConnectedVertices(newnode->vtkIdx);
+    for(vtkIdType &vj : neighbors){
       // find the set of vi and vj
       // the scalar value of j should be lower
-      vtkIdType iset = findSet(component, sortedIndices[i]);
-      vtkIdType jset = findSet(component, vj);
+      if(scalars[vj] < scalars[vertexList[*idx]] && vj >= vertexList.front() && vj <= vertexList.back()){
+        vtkIdType iset = findSet(component, *idx);
+        vtkIdType jset = findSet(component, vj-vertexList.front());
 
-      if(iset != jset){
-        joinTree[jset]->parent = joinTree[iset];
-        joinTree[iset]->children.push_back(joinTree[jset]);
-        unionSet(component, iset, jset);
+        if(iset != jset){
+          joinTree[jset]->parent = joinTree[iset];
+          joinTree[iset]->children.push_back(joinTree[jset]);
+          unionSet(component, iset, jset);
+        }
       }
     }
   }
@@ -49,30 +54,33 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
 }
 
 // Construct the split tree.
-void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
+void MergeTree::constructSplit(vector<size_t>& sortedIndices){
+  float *scalars = (float *)getScalar(sgrid);
   int regionSize = sortedIndices.size();
   vector<vtkIdType> component(regionSize, -1);
 
   splitTree = vector<node*>(regionSize, nullptr);
-  for(int i = regionSize-1; i >= 0; i--){
-    node *newnode = new node(sortedIndices[i]);
-    splitTree.at(sortedIndices[i]) = newnode;
+  for(auto idx = sortedIndices.rbegin(); idx != sortedIndices.rend(); idx++){
+    node *newnode = new node(vertexList[*idx]);
+    splitTree[*idx] = newnode;
 
-    vector<vtkIdType> upperLinks = getUpperLinks(sortedIndices[i]);
-    for(vtkIdType &vj : upperLinks){
+    vector<vtkIdType> neighbors = getConnectedVertices(newnode->vtkIdx);
+    for(vtkIdType &vj : neighbors){
       // find the set of vi and vj
       // the scalar value of j should be greater
-      vtkIdType iset = findSet(component, sortedIndices[i]);
-      vtkIdType jset = findSet(component, vj);
+      if(scalars[vj] > scalars[vertexList[*idx]] && vj >= vertexList.front() && vj <= vertexList.back()){
+        vtkIdType iset = findSet(component, *idx);
+        vtkIdType jset = findSet(component, vj-vertexList.front());
 
-      if(iset != jset){
-        splitTree[jset]->parent = splitTree[iset];
-        splitTree[iset]->children.push_back(splitTree[jset]);
-        unionSet(component, iset, jset);
+        if(iset != jset){
+          splitTree[jset]->parent = splitTree[iset];
+          splitTree[iset]->children.push_back(splitTree[jset]);
+          unionSet(component, iset, jset);
+        }
       }
     }
   }
-  printf("Split tree built!\n");
+  printf("Split tree created!\n");
 }
 
 
@@ -153,6 +161,51 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
 }
 
 
+vector<vtkIdType> MergeTree::getConnectedVertices(vtkIdType id){
+
+  vector<vtkIdType> connectedVertices;
+  int ids[3];
+  ids[0] = id % dimension[0];
+  ids[2] = id / (dimension[0]*dimension[1]);
+  ids[1] = (id % (dimension[0]*dimension[1]) / dimension[0]);
+  for(int i = 0; i < 3; i++){
+    ids[i] -= 1;
+    if(ids[i] >= 0 && ids[i] < dimension[i]){
+      connectedVertices.push_back((ids[0]+ids[1]*dimension[0]+ids[2]*dimension[0]*dimension[1]));
+    }
+    ids[i] += 2;
+    if(ids[i] >= 0 && ids[i] < dimension[i]){
+      connectedVertices.push_back((ids[0]+ids[1]*dimension[0]+ids[2]*dimension[0]*dimension[1]));
+    }
+    ids[i] -= 1;
+  }
+
+  /*
+  //get all cells that vertex 'id' is a part of
+  vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
+  sgrid->GetPointCells(id, cellIdList);
+
+  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++){
+    //cout << "id " << i << " : " << cellIdList->GetId(i) << endl;
+    vtkCell *cell = sgrid->GetCell(cellIdList->GetId(i));
+    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
+      vtkCell *edge = cell->GetEdge(e);
+      vtkIdList *pointIdList = edge->GetPointIds();
+      if(pointIdList->GetId(0) == id || pointIdList->GetId(1) == id){
+        if(pointIdList->GetId(0) == id){
+          connectedVertices.push_back(pointIdList->GetId(1));
+        }else{
+          connectedVertices.push_back(pointIdList->GetId(0));
+        }
+      }
+    }
+  }
+  */
+
+  return connectedVertices;
+}
+
+/*
 // Get the lower links of the given vertex.
 vector<vtkIdType> MergeTree::getLowerLinks(vtkIdType vertexId){
   float *scalars = (float*)getScalar(sgrid);
@@ -199,11 +252,9 @@ vector<vtkIdType> MergeTree::getUpperLinks(vtkIdType vertexId){
         neighbors.insert(vtkIdx);
     }
   }
-
-  vector<vtkIdType> lowerLinks(neighbors.begin(), neighbors.end());
-
-  return lowerLinks;
 }
+*/
+
 
 
 // Return all local maxima in the simplicial complex.

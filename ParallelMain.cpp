@@ -41,11 +41,11 @@ int main ( int argc, char *argv[] )
   // Test merge tree
   MergeTree testTree(sgrid);
   testTree.build();
-  // decompose(threadNum, sgrid, regions, globalBridgeSet);
+  decompose(threadNum, sgrid, regions, globalBridgeSet);
   
   // Test the domain decomposition and global bridge set
-  // for(unsigned i = 0; i < regions[0].size(); i++){
-  //   printf("[%lld], ", regions[0][i]);
+  // for(size_t i = 0; i < regions.size(); i++){
+  //   printf("region %lu: <%lld, %lld> \n", i, regions[i].front(), regions[i].back());
   // }
   // printf("\n");
   // printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
@@ -72,7 +72,7 @@ int main ( int argc, char *argv[] )
 
 
   
-  // // OpenMP routine
+  // OpenMP routine
   // vector<vtkIdType> maxima;   // use for maxima query
   // omp_set_num_threads(threadNum);
   // #pragma omp parallel
@@ -83,11 +83,10 @@ int main ( int argc, char *argv[] )
   //     // printf("Thread id = %d\n", tid);
 
   //     // Construct the local merge tree with the vertex set
-  //     MergeTree localMergeTree(sgrid);
-  //     localMergeTree.build(regions[tid]);
+  //     MergeTree localMergeTree(sgrid, regions[tid], getLocalBridgeSet(reducedGlobalBS, regions[tid]));
+  //     localMergeTree.build();
       
   //     // Construct the reduced bridge set
-  //     //set<pair<vtkIdType, vtkIdType>> localBridgeSet = getLocalBridgeSet(reducedGlobalBS, regions[tid]);
 
   //     // Perform queries
   //     //vector<vtkIdType> regionMaxima = localMergeTree.MaximaQuery(localBridgeSet);
