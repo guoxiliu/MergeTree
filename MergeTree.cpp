@@ -17,7 +17,7 @@ int MergeTree::build(){
   vector<vtkIdType> sortedIndices = argsort(vertexList, sgrid);
   constructJoin(sortedIndices);
   constructSplit(sortedIndices);
-  // mergeJoinSplit(joinTree, splitTree);
+  mergeJoinSplit(joinTree, splitTree);
   return 0;
 }
 
@@ -68,7 +68,7 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
       if(iset != jset){
         splitTree[jset]->parent = splitTree[iset];
         splitTree[iset]->children.push_back(splitTree[jset]);
-        unionSet(component, jset, iset);
+        unionSet(component, iset, jset);
       }
     }
   }
