@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <vtkSmartPointer.h>
 #include <vtkXMLImageDataReader.h>
+#include <chrono>
 
 using namespace std;
 
