@@ -52,15 +52,15 @@ void MergeTree::constructJoin(vector<size_t>& sortedIndices){
   joinTree = vector<node*>(regionSize, nullptr);
   for(int i = 0; i < regionSize; i++){
     size_t idx = sortedIndices[i];
-    node *newnode = new node(vertexList[idx]);
+    node *newnode = new node(idx);
     joinTree[idx] = newnode;
 
-    vector<vtkIdType> neighbors = getConnectedVertices(newnode->vtkIdx);
+    vector<vtkIdType> neighbors = getConnectedVertices(vertexList[idx]);
     for(vtkIdType &vj : neighbors){
       // see if the vertex is in the range
       if(vj < vertexList.front() || vj > vertexList.back()) 
         continue;
-      if((scalars[vj] < scalars[newnode->vtkIdx]) || (scalars[vj] == scalars[newnode->vtkIdx] && vj < newnode->vtkIdx)){
+      if((scalars[vj] < scalars[vertexList[idx]]) || (scalars[vj] == scalars[vertexList[idx]] && vj < vertexList[idx])){
         // find the set of vi and vj
         // the scalar value of j should be lower
         vtkIdType iset = findSet(component, idx);
@@ -84,18 +84,18 @@ void MergeTree::constructSplit(vector<size_t>& sortedIndices){
   vector<vtkIdType> component(regionSize, -1);
 
   splitTree = vector<node*>(regionSize, nullptr);
-  for(int i = regionSize-1; i >= 0; i++){
+  for(int i = regionSize-1; i >= 0; i--){
     size_t idx = sortedIndices[i];
-    node *newnode = new node(vertexList[idx]);
+    node *newnode = new node(idx);
     splitTree[idx] = newnode;
 
-    vector<vtkIdType> neighbors = getConnectedVertices(newnode->vtkIdx);
+    vector<vtkIdType> neighbors = getConnectedVertices(vertexList[idx]);
     for(vtkIdType &vj : neighbors){
       // find the set of vi and vj
       // the scalar value of j should be greater
       if (vj < vertexList.front() || vj > vertexList.back())
         continue;
-      if((scalars[vj] > scalars[newnode->vtkIdx]) || (scalars[vj] == scalars[newnode->vtkIdx] && vj > newnode->vtkIdx)){
+      if((scalars[vj] > scalars[vertexList[idx]]) || (scalars[vj] == scalars[vertexList[idx]] && vj > vertexList[idx])){
           vtkIdType iset = findSet(component, idx);
           vtkIdType jset = findSet(component, vj-vertexList.front());
 
