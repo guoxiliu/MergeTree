@@ -50,9 +50,7 @@ class MergeTree{
   
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree
-    vector<node*> mergeTree;
-    
-   
+    vector<node*> mergeTree;   
 };
 
 

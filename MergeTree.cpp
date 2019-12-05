@@ -168,8 +168,9 @@ vector<vtkIdType> MergeTree::getLowerLinks(vtkIdType vertexId){
     sgrid->GetCellPoints(cellIdList->GetId(i), pointIdList);
 
     for(vtkIdType j = 0; j <pointIdList->GetNumberOfIds(); ++j){
-      if(scalars[pointIdList->GetId(j)] < scalars[vertexId])
-        neighbors.insert(pointIdList->GetId(j));
+      vtkIdType vtkIdx = pointIdList->GetId(j);
+      if((scalars[vtkIdx] < scalars[vertexId])|| (scalars[vtkIdx] == scalars[vertexId] && vtkIdx < vertexId))
+        neighbors.insert(vtkIdx);
     }
   }
 
@@ -193,8 +194,9 @@ vector<vtkIdType> MergeTree::getUpperLinks(vtkIdType vertexId){
     sgrid->GetCellPoints(cellIdList->GetId(i), pointIdList);
 
     for(vtkIdType j = 0; j <pointIdList->GetNumberOfIds(); ++j){
-      if(scalars[pointIdList->GetId(j)] > scalars[vertexId])
-        neighbors.insert(pointIdList->GetId(j));
+      vtkIdType vtkIdx = pointIdList->GetId(j);
+      if((scalars[vtkIdx] > scalars[vertexId]) || (scalars[vtkIdx] == scalars[vertexId] && vtkIdx > vertexId))
+        neighbors.insert(vtkIdx);
     }
   }
 

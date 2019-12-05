@@ -17,9 +17,9 @@ vector<vtkIdType> argsort(const vector<vtkIdType>& vertexSet, vtkImageData* sgri
   float *scalarData = (float*)getScalar(sgrid);
   vector<vtkIdType> sortedVertices(vertexSet.begin(), vertexSet.end());
   if(increasing){
-    sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
+    stable_sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] < scalarData[i2];});
   }else{
-    sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
+    stable_sort(sortedVertices.begin(), sortedVertices.end(), [scalarData](vtkIdType i1, vtkIdType i2) {return scalarData[i1] > scalarData[i2];});
   }
   return sortedVertices;
 }

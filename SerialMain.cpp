@@ -37,20 +37,20 @@ int main ( int argc, char *argv[] )
   auto start = chrono::high_resolution_clock::now();
   testTree.build();
   auto stop = chrono::high_resolution_clock::now();
-  auto duration = chrono::duration_cast<chrono::seconds>(stop - start);
-  cout << "Build merge Tree cost: " << duration.count() << "seconds" <<endl;
+  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "Build merge Tree cost: " << duration.count() << " microseconds" <<endl;
   // Test the queries here.
   set<pair<vtkIdType, vtkIdType>> emptyBridgeSet;
   start = chrono::high_resolution_clock::now();
   vector<vtkIdType> maxima = testTree.MaximaQuery(emptyBridgeSet);
   stop = chrono::high_resolution_clock::now();
-  duration = chrono::duration_cast<chrono::seconds>(stop - start);
-  cout << "MaximaQuery cost: " << duration.count() << "seconds" <<endl;
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "MaximaQuery cost: " << duration.count() << " microseconds" <<endl;
 
   printf("The size of the maxima is %zu\n", maxima.size());
-  for (unsigned int i = 0; i < maxima.size(); i++) {
+  /* for (unsigned int i = 0; i < maxima.size(); i++) {
     printf("maxima[%u]: %lld\n", i, maxima[i]);
-  }
+  } */
 
   return EXIT_SUCCESS;
 }
