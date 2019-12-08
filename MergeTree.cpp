@@ -59,6 +59,7 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
       vtkIdType jset = findSet(component, vj);
 
       if(iset != jset){
+        printf("i = %d, vj = %d\n", i, (int)(vj));
         joinTree[jset]->parent = joinTree[iset];
         joinTree[iset]->children.push_back(joinTree[jset]);
         unionSet(component, iset, jset);
@@ -86,6 +87,7 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
       vtkIdType jset = findSet(component, vj);
 
       if(iset != jset){
+        printf("i = %d, vj = %d\n", i, (int)(vj));
         splitTree[jset]->parent = splitTree[iset];
         splitTree[iset]->children.push_back(splitTree[jset]);
         unionSet(component, iset, jset);
