@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int threadNum = 16;
+const int threadNum = 4;
 const bool runMode = 0;
 
 int main ( int argc, char *argv[] )
@@ -37,15 +37,15 @@ int main ( int argc, char *argv[] )
   // Partition the dataset 
   vtkImageData *sgrid = reader->GetOutput();
 
-  if(runMode){
-    // Test merge tree
-    MergeTree testTree(sgrid);
-    auto start = chrono::high_resolution_clock::now();
-    testTree.build();
-    auto stop = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
-    printf("Build merge tree cost: %lld\n", duration.count());
-  }else{
+  //if(runMode){
+  //  // Test merge tree
+  //  MergeTree testTree(sgrid);
+  //  auto start = chrono::high_resolution_clock::now();
+  //  testTree.build();
+  //  auto stop = chrono::high_resolution_clock::now();
+  //  auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
+  //  printf("Build merge tree cost: %lld\n", duration.count());
+  //}
 
     vector<vector<vtkIdType>> regions;
     set<pair<vtkIdType, vtkIdType>> globalBridgeSet;
@@ -72,11 +72,11 @@ int main ( int argc, char *argv[] )
     //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
     // }
     
-    // vector<vtkIdType> allVertices(sgrid->GetNumberOfPoints());
-    // iota(allVertices.begin(), allVertices.end(), 0);
-    //set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, sgrid);
+    vector<vtkIdType> allVertices(sgrid->GetNumberOfPoints());
+    iota(allVertices.begin(), allVertices.end(), 0);
+    set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, sgrid);
     // Test the reduced global bridge set
-    // printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
+    printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
     // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
     //   printf("<%lld, %lld>\n", (*iter).first, (*iter).second);
     // }
@@ -118,8 +118,6 @@ int main ( int argc, char *argv[] )
     // for (unsigned int i = 0; i < maxima.size(); i++) {
     //   printf("maxima[%u]: %lld\n", i, maxima[i]);
     // }
-
-  }
 
   return 0;
 }

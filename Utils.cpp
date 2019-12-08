@@ -4,7 +4,7 @@
 /**
  * Get the void pointer of the scalar data.
  */ 
-void* getScalar(vtkImageData* sgrid) {
+void* getScalar(vtkImageData* sgrid){
   vtkDataArray *scalarfield = sgrid->GetPointData()->GetArray(0);
   void *scalarData = scalarfield->GetVoidPointer(0);
   return scalarData;
@@ -56,8 +56,56 @@ vtkIdType findSet(vector<vtkIdType> &group, vtkIdType i){
 void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
   vtkIdType iset = findSet(group, i);
   vtkIdType jset = findSet(group, j);
-  group[jset] = iset;
+  if(iset != jset)
+    group[jset] = iset;
 }
+
+/**
+ * Get connected vertices with a given vertex id.
+ */ 
+vector<vtkIdType> getConnectedVertices(vtkIdType id, const vtkImageData *sgrid, int dim[3]){
+  vector<vtkIdType> connectedVertices;
+  int ids[3];
+  ids[0] = id % dim[0];
+  ids[2] = id / (dim[0]*dim[1]);
+  ids[1] = (id % (dim[0]*dim[1]) / dim[0]);
+  for(int i = 0; i < 3; i++){
+    ids[i] -= 1;
+    if(ids[i] >= 0 && ids[i] < dim[i]){
+      connectedVertices.push_back((ids[0]+ids[1]*dim[0]+ids[2]*dim[0]*dim[1]));
+    }
+    ids[i] += 2;
+    if(ids[i] >= 0 && ids[i] < dim[i]){
+      connectedVertices.push_back((ids[0]+ids[1]*dim[0]+ids[2]*dim[0]*dim[1]));
+    }
+    ids[i] -= 1;
+  }
+
+  /*
+  //get all cells that vertex 'id' is a part of
+  vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
+  sgrid->GetPointCells(id, cellIdList);
+
+  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++){
+    //cout << "id " << i << " : " << cellIdList->GetId(i) << endl;
+    vtkCell *cell = sgrid->GetCell(cellIdList->GetId(i));
+    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
+      vtkCell *edge = cell->GetEdge(e);
+      vtkIdList *pointIdList = edge->GetPointIds();
+      if(pointIdList->GetId(0) == id || pointIdList->GetId(1) == id){
+        if(pointIdList->GetId(0) == id){
+          connectedVertices.push_back(pointIdList->GetId(1));
+        }else{
+          connectedVertices.push_back(pointIdList->GetId(0));
+        }
+      }
+    }
+  }
+  */
+
+  return connectedVertices;
+}
+
 
 /**
  * Decompose the domain according to the number of threads.
@@ -121,50 +169,38 @@ set<pair<vtkIdType, vtkIdType>> getLocalBridgeSet(const set<pair<vtkIdType, vtkI
  */ 
 set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vtkIdType>> &bridgeSet, const vector<vtkIdType> &vertexList, vtkImageData *sgrid){
   // initialize
-  set<pair<vtkIdType, vtkIdType>> reducedBS;
+  int dimension[3];
+  sgrid->GetDimensions(dimension);
   int regionSize = vertexList.size();
-  vector<vtkIdType> component(sgrid->GetNumberOfPoints(), -1);
+  set<pair<vtkIdType, vtkIdType>> reducedBS;
   float *scalars = (float *)getScalar(sgrid);
-
+  
+  vector<vtkIdType> component(regionSize, -1);
   vector<vtkIdType> sortedVertices = argsort(vertexList, sgrid, false);
-  // loop the vetex ids in decreasing order
-  for(int i = 0; i < regionSize; i++){
-   // build the upper link set of the current vertex id
-   vector<vtkIdType> upperLinks;
-   // first get the cells incident to the vertex
-   vtkSmartPointer<vtkIdList> pointCellIds = vtkSmartPointer<vtkIdList>::New();
-   sgrid->GetPointCells(sortedVertices[i], pointCellIds);
-   vtkIdType pointCellSize = pointCellIds->GetNumberOfIds();
-   for(vtkIdType j = 0; j < pointCellSize; j++){
-     // for each cell get its vertices
-     vtkSmartPointer<vtkIdList> cellPointIds = vtkSmartPointer<vtkIdList>::New();
-     sgrid->GetCellPoints(pointCellIds->GetId(j), cellPointIds);
-     vtkIdType cellSize = cellPointIds->GetNumberOfIds();
-     for(vtkIdType k = 0; k < cellSize; k++){
-       // see if the scalar value is greater than the current one
-       if(scalars[cellPointIds->GetId(k)] > scalars[sortedVertices[i]]){
-         upperLinks.push_back(cellPointIds->GetId(k));
-       }
-     }
-   }
-   
-   // connect inside region
-   for(vtkIdType &j:upperLinks){
-     pair<vtkIdType, vtkIdType> edge(sortedVertices[i], j);
-     if(bridgeSet.find(edge) == bridgeSet.end()){
-       unionSet(component, sortedVertices[i], j);
-     }
-   }
 
-   // connect between regions
-   for(vtkIdType &j:upperLinks){
-     if(findSet(component, sortedVertices[i]) != findSet(component, j)){
-       unionSet(component, sortedVertices[i], j);
-       reducedBS.insert(pair<vtkIdType, vtkIdType>(vertexList[i], j));
-     }
-   }
+  // loop the vertex ids in decreasing order
+  for(int i = 0; i < regionSize; i++){
+    // build the upper link set of the current vertex id
+    vector<vtkIdType> neighbors = getConnectedVertices(sortedVertices[i], sgrid, dimension);
+    for(vtkIdType &vj : neighbors){
+      // upper links
+      if(scalars[vj] > scalars[sortedVertices[i]]){
+        // connect inside region
+        pair<vtkIdType, vtkIdType> edge(sortedVertices[i], vj);
+        if(bridgeSet.find(edge) == bridgeSet.end()){
+          unionSet(component, sortedVertices[i], vj);
+        }
+      }
+    }
+    for(vtkIdType &vj : neighbors){
+      if(scalars[vj] > scalars[sortedVertices[i]]){
+        if(findSet(component, sortedVertices[i]) != findSet(component, vj)){
+          unionSet(component, sortedVertices[i], vj);
+          reducedBS.insert(pair<vtkIdType, vtkIdType>(vertexList[i], vj));
+        }
+      }
+    }
   }
 
-  // printf("Size of the reduced bridge set: %zu\n", reducedBS.size());
   return reducedBS;
 }

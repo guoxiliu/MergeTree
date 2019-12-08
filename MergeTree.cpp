@@ -55,7 +55,7 @@ void MergeTree::constructJoin(vector<size_t>& sortedIndices){
     node *newnode = new node(idx);
     joinTree[idx] = newnode;
 
-    vector<vtkIdType> neighbors = getConnectedVertices(vertexList[idx]);
+    vector<vtkIdType> neighbors = getConnectedVertices(vertexList[idx], sgrid, dimension);
     for(vtkIdType &vj : neighbors){
       // see if the vertex is in the range
       if(vj < vertexList.front() || vj > vertexList.back()) 
@@ -89,7 +89,7 @@ void MergeTree::constructSplit(vector<size_t>& sortedIndices){
     node *newnode = new node(idx);
     splitTree[idx] = newnode;
 
-    vector<vtkIdType> neighbors = getConnectedVertices(vertexList[idx]);
+    vector<vtkIdType> neighbors = getConnectedVertices(vertexList[idx], sgrid, dimension);
     for(vtkIdType &vj : neighbors){
       // find the set of vi and vj
       // the scalar value of j should be greater
@@ -188,49 +188,57 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
 }
 
 
-vector<vtkIdType> MergeTree::getConnectedVertices(vtkIdType id){
-
-  vector<vtkIdType> connectedVertices;
-  int ids[3];
-  ids[0] = id % dimension[0];
-  ids[2] = id / (dimension[0]*dimension[1]);
-  ids[1] = (id % (dimension[0]*dimension[1]) / dimension[0]);
-  for(int i = 0; i < 3; i++){
-    ids[i] -= 1;
-    if(ids[i] >= 0 && ids[i] < dimension[i]){
-      connectedVertices.push_back((ids[0]+ids[1]*dimension[0]+ids[2]*dimension[0]*dimension[1]));
-    }
-    ids[i] += 2;
-    if(ids[i] >= 0 && ids[i] < dimension[i]){
-      connectedVertices.push_back((ids[0]+ids[1]*dimension[0]+ids[2]*dimension[0]*dimension[1]));
-    }
-    ids[i] -= 1;
+// Return all local maxima in the simplicial complex.
+vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &bridgeSet){
+  // collect the higher end vertices from the bridge set
+  set<vtkIdType> lowEndVertices;
+  for(auto it = bridgeSet.begin(); it != bridgeSet.end(); it++){
+    lowEndVertices.insert(it->first);   // the higher end vertex has the smaller scalar value
   }
+  float* scalarData = (float*) getScalar(sgrid);
 
-  /*
-  //get all cells that vertex 'id' is a part of
-  vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
-  sgrid->GetPointCells(id, cellIdList);
-
-  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++){
-    //cout << "id " << i << " : " << cellIdList->GetId(i) << endl;
-    vtkCell *cell = sgrid->GetCell(cellIdList->GetId(i));
-    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
-      vtkCell *edge = cell->GetEdge(e);
-      vtkIdList *pointIdList = edge->GetPointIds();
-      if(pointIdList->GetId(0) == id || pointIdList->GetId(1) == id){
-        if(pointIdList->GetId(0) == id){
-          connectedVertices.push_back(pointIdList->GetId(1));
-        }else{
-          connectedVertices.push_back(pointIdList->GetId(0));
-        }
-      }
+  vector<vtkIdType> maxima;
+  //iterate mergeTree to find local maximum
+  for(auto node:mergeTree){
+    if(node->children.size() == 0 && scalarData[node->parent->vtkIdx] < scalarData[node->vtkIdx]){
+      if(lowEndVertices.find(node->vtkIdx) == lowEndVertices.end())
+        maxima.push_back(node->vtkIdx);
     }
   }
-  */
-
-  return connectedVertices;
+  return maxima;
 }
+
+// Return the vertex within the superlevel component that has maximum scalar function value.
+vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
+  queue<node*> nodes;
+  set<vtkIdType> visitedVertices;
+  float* scalarData = (float*) getScalar(sgrid);
+  if(scalarData[v] < level)
+    return v;
+  vtkIdType compMax = v;
+
+  nodes.push(mergeTree[v]);
+  while(nodes.size()){
+    node* n = nodes.front();
+    nodes.pop();
+    visitedVertices.insert(n->vtkIdx);
+
+    compMax = scalarData[n->vtkIdx] > scalarData[compMax]? n->vtkIdx: compMax;
+    
+    if(n->parent && scalarData[n->parent->vtkIdx] > level && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
+        nodes.push(n->parent);
+    for(auto child : n->children){
+      if(scalarData[child->vtkIdx] > level && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
+        nodes.push(child);
+    }
+  }
+  return compMax;
+}
+
+
+/**
+ * Deprecated Functions!
+ */ 
 
 /*
 // Get the lower links of the given vertex.
@@ -281,53 +289,4 @@ vector<vtkIdType> MergeTree::getUpperLinks(vtkIdType vertexId){
   }
 }
 */
-
-
-
-// Return all local maxima in the simplicial complex.
-vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &bridgeSet){
-  // collect the higher end vertices from the bridge set
-  set<vtkIdType> lowEndVertices;
-  for(auto it = bridgeSet.begin(); it != bridgeSet.end(); it++){
-    lowEndVertices.insert(it->first);   // the higher end vertex has the smaller scalar value
-  }
-  float* scalarData = (float*) getScalar(sgrid);
-
-  vector<vtkIdType> maxima;
-  //iterate mergeTree to find local maximum
-  for(auto node:mergeTree){
-    if(node->children.size() == 0 && scalarData[node->parent->vtkIdx] < scalarData[node->vtkIdx]){
-      if(lowEndVertices.find(node->vtkIdx) == lowEndVertices.end())
-        maxima.push_back(node->vtkIdx);
-    }
-  }
-  return maxima;
-}
-
-// Return the vertex within the superlevel component that has maximum scalar function value.
-vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
-  queue<node*> nodes;
-  set<vtkIdType> visitedVertices;
-  float* scalarData = (float*) getScalar(sgrid);
-  if(scalarData[v] < level)
-    return v;
-  vtkIdType compMax = v;
-
-  nodes.push(mergeTree[v]);
-  while(nodes.size()){
-    node* n = nodes.front();
-    nodes.pop();
-    visitedVertices.insert(n->vtkIdx);
-
-    compMax = scalarData[n->vtkIdx] > scalarData[compMax]? n->vtkIdx: compMax;
-    
-    if(n->parent && scalarData[n->parent->vtkIdx] > level && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
-        nodes.push(n->parent);
-    for(auto child : n->children){
-      if(scalarData[child->vtkIdx] > level && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
-        nodes.push(child);
-    }
-  }
-  return compMax;
-}
 
