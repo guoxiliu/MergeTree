@@ -50,6 +50,14 @@ int main ( int argc, char *argv[] )
   /* for (unsigned int i = 0; i < maxima.size(); i++) {
     printf("maxima[%u]: %lld\n", i, maxima[i]);
   } */
+  start = chrono::high_resolution_clock::now();
+  vtkIdType v = 0;
+  float level = 210;
+  vtkIdType  CompMaxima = testTree.ComponentMaximumQuery(v,level);
+  stop = chrono::high_resolution_clock::now();
+  duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  cout << "ComponentMaximaQuery cost: " << duration.count() << " microseconds" <<endl;
 
+ printf("the component maxima is %d\n", (int)CompMaxima);	
   return EXIT_SUCCESS;
 }
