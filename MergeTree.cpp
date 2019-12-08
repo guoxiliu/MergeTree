@@ -37,7 +37,7 @@ int MergeTree::build(){
   stop = chrono::high_resolution_clock::now();
   duration = chrono::duration_cast<chrono::microseconds>(stop - start);
   cout << "Merge Join Split cost: " << duration.count() << " microseconds" <<endl;
-  
+
   return 0;
 }
 
@@ -177,7 +177,33 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
 vector<vtkIdType> MergeTree::getLowerLinks(vtkIdType vertexId){
   float *scalars = (float*)getScalar(sgrid);
 
-  // get all cells that vertex 'id' is a part of 
+  //get all cells that vertex 'id' is a part of
+  vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
+  sgrid->GetPointCells(vertexId, cellIdList);
+  set<vtkIdType> neighbors;
+
+  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++){
+    //cout << "id " << i << " : " << cellIdLisst->GetId(i) << endl;
+    vtkCell *cell = sgrid->GetCell(cellIdList->GetId(i));
+    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
+      vtkCell *edge = cell->GetEdge(e);
+      vtkIdList *pointIdList = edge->GetPointIds();
+      vtkIdType v0 = pointIdList->GetId(0), v1 = pointIdList->GetId(1);
+      if(v0 == vertexId || v1 == vertexId){
+        if(v0 == vertexId){
+          if((scalars[v1] < scalars[vertexId])|| (scalars[v1] == scalars[vertexId] && v1 < vertexId))
+            neighbors.insert(v1);
+        }else{
+          if((scalars[v0] < scalars[vertexId])|| (scalars[v0] == scalars[vertexId] && v0 < vertexId))
+            neighbors.insert(v0);
+        }
+      }
+    }
+  }
+
+  vector<vtkIdType> lowerLinks(neighbors.begin(), neighbors.end());
+
+  /*
   vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
   sgrid->GetPointCells(vertexId,cellIdList);
 
@@ -195,6 +221,7 @@ vector<vtkIdType> MergeTree::getLowerLinks(vtkIdType vertexId){
   }
 
   vector<vtkIdType> lowerLinks(neighbors.begin(), neighbors.end());
+  */
 
   return lowerLinks;
 }
@@ -203,7 +230,31 @@ vector<vtkIdType> MergeTree::getLowerLinks(vtkIdType vertexId){
 vector<vtkIdType> MergeTree::getUpperLinks(vtkIdType vertexId){
   float *scalars = (float*)getScalar(sgrid);
 
-  // get all cells that vertex 'id' is a part of 
+  //get all cells that vertex 'id' is a part of
+  vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
+  sgrid->GetPointCells(vertexId, cellIdList);
+  set<vtkIdType> neighbors;
+
+  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++){
+    vtkCell *cell = sgrid->GetCell(cellIdList->GetId(i));
+    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
+      vtkCell *edge = cell->GetEdge(e);
+      vtkIdList *pointIdList = edge->GetPointIds();
+      vtkIdType v0 = pointIdList->GetId(0), v1 = pointIdList->GetId(1);
+      if(v0 == vertexId || v1 == vertexId){
+        if(v0 == vertexId){
+          if((scalars[v1] > scalars[vertexId])|| (scalars[v1] == scalars[vertexId] && v1 > vertexId))
+            neighbors.insert(v1);
+        }else{
+          if((scalars[v0] > scalars[vertexId])|| (scalars[v0] == scalars[vertexId] && v0 > vertexId))
+            neighbors.insert(v0);
+        }
+      }
+    }
+  }
+  vector<vtkIdType> upperLinks(neighbors.begin(), neighbors.end());
+
+  /*
   vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
   sgrid->GetPointCells(vertexId,cellIdList);
 
@@ -220,9 +271,10 @@ vector<vtkIdType> MergeTree::getUpperLinks(vtkIdType vertexId){
     }
   }
 
-  vector<vtkIdType> lowerLinks(neighbors.begin(), neighbors.end());
+  vector<vtkIdType> upperLinks(neighbors.begin(), neighbors.end());
+  */
 
-  return lowerLinks;
+  return upperLinks;
 }
 
 
