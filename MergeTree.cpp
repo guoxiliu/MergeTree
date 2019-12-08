@@ -52,6 +52,7 @@ void MergeTree::constructJoin(vector<vtkIdType>& sortedIndices){
     joinTree.at(sortedIndices[i]) = newnode;
 
     vector<vtkIdType> lowerLinks = getLowerLinks(sortedIndices[i]);
+    
     for(vtkIdType &vj : lowerLinks){
       // find the set of vi and vj
       // the scalar value of j should be lower
@@ -80,6 +81,11 @@ void MergeTree::constructSplit(vector<vtkIdType>& sortedIndices){
     splitTree.at(sortedIndices[i]) = newnode;
 
     vector<vtkIdType> upperLinks = getUpperLinks(sortedIndices[i]);
+    if(i%1000 == 0){
+        for(auto id: upperLinks){
+            printf("i = %d, vj = %d\n", i, (int)(id));
+        }
+    }
     for(vtkIdType &vj : upperLinks){
       // find the set of vi and vj
       // the scalar value of j should be greater
