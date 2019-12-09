@@ -298,7 +298,7 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
   vector<vtkIdType> maxima;
   //iterate mergeTree to find local maximum
   for(auto node:mergeTree){
-    if(node->children.size() == 0 && scalarData[node->parent->vtkIdx] < scalarData[node->vtkIdx]){
+    if(node->children.size() == 0 && ((node->parent && scalarData[node->parent->vtkIdx] < scalarData[node->vtkIdx])||!node->parent)){
       if(lowEndVertices.find(node->vtkIdx) == lowEndVertices.end())
         maxima.push_back(node->vtkIdx);
     }
@@ -323,10 +323,10 @@ vtkIdType MergeTree::ComponentMaximumQuery(vtkIdType& v, float& level){
 
     compMax = scalarData[n->vtkIdx] > scalarData[compMax]? n->vtkIdx: compMax;
     
-    if(n->parent && scalarData[n->parent->vtkIdx] > level && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
+    if(n->parent && scalarData[n->parent->vtkIdx] >= level && visitedVertices.find(n->parent->vtkIdx) == visitedVertices.end())
         nodes.push(n->parent);
     for(auto child : n->children){
-      if(scalarData[child->vtkIdx] > level && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
+      if(scalarData[child->vtkIdx] >= level && visitedVertices.find(child->vtkIdx) == visitedVertices.end())
         nodes.push(child);
     }
   }

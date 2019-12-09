@@ -40,7 +40,8 @@ vtkIdType findSet(vector<vtkIdType> &group, vtkIdType i){
 void unionSet(vector<vtkIdType> &group, vtkIdType i, vtkIdType j){
   vtkIdType iset = findSet(group, i);
   vtkIdType jset = findSet(group, j);
-  group[jset] = iset;
+  if (jset != iset)
+  	group[jset] = iset;
 }
 
 /**

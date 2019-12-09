@@ -52,7 +52,8 @@ int main ( int argc, char *argv[] )
   } */
   start = chrono::high_resolution_clock::now();
   vtkIdType v = 0;
-  float level = 210;
+  float *scalar = (float*) getScalar(reader->GetOutput());
+  float level = scalar[v];
   vtkIdType  CompMaxima = testTree.ComponentMaximumQuery(v,level);
   stop = chrono::high_resolution_clock::now();
   duration = chrono::duration_cast<chrono::microseconds>(stop - start);
