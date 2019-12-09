@@ -10,6 +10,7 @@
 #include <numeric>
 #include <algorithm>
 #include <unordered_map>
+#include <omp.h>
 #include <float.h>
 #include <stdio.h>
 #include <vtkCell.h>

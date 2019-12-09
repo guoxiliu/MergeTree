@@ -5,15 +5,6 @@
 
 using namespace std;
 
-
-// struct superArc{
-//   superArc *parent;
-//   vector<superArc*> children;
-//   list<vtkIdType> vertexList;
-
-//   superArc():parent(nullptr){}
-// };
-
 struct node{
   vtkIdType vtkIdx;
   node *parent;

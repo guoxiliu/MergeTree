@@ -81,28 +81,6 @@ vector<vtkIdType> getConnectedVertices(vtkIdType id, const vtkImageData *sgrid, 
     ids[i] -= 1;
   }
 
-  /*
-  //get all cells that vertex 'id' is a part of
-  vtkSmartPointer<vtkIdList> cellIdList = vtkSmartPointer<vtkIdList>::New();
-  sgrid->GetPointCells(id, cellIdList);
-
-  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++){
-    //cout << "id " << i << " : " << cellIdList->GetId(i) << endl;
-    vtkCell *cell = sgrid->GetCell(cellIdList->GetId(i));
-    for(int e = 0; e < cell->GetNumberOfEdges(); e++){
-      vtkCell *edge = cell->GetEdge(e);
-      vtkIdList *pointIdList = edge->GetPointIds();
-      if(pointIdList->GetId(0) == id || pointIdList->GetId(1) == id){
-        if(pointIdList->GetId(0) == id){
-          connectedVertices.push_back(pointIdList->GetId(1));
-        }else{
-          connectedVertices.push_back(pointIdList->GetId(0));
-        }
-      }
-    }
-  }
-  */
-
   return connectedVertices;
 }
 
@@ -192,6 +170,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
         }
       }
     }
+    // connect between regions
     for(vtkIdType &vj : neighbors){
       if(scalars[vj] > scalars[sortedVertices[i]]){
         if(findSet(component, sortedVertices[i]) != findSet(component, vj)){

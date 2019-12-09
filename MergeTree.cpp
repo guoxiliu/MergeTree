@@ -193,7 +193,7 @@ vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &
   // collect the higher end vertices from the bridge set
   set<vtkIdType> lowEndVertices;
   for(auto it = bridgeSet.begin(); it != bridgeSet.end(); it++){
-    lowEndVertices.insert(it->first);   // the higher end vertex has the smaller scalar value
+    lowEndVertices.insert(it->first);   // the lower end vertex has the smaller scalar value
   }
   float* scalarData = (float*) getScalar(sgrid);
 
