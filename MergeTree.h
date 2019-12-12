@@ -34,7 +34,7 @@ class MergeTree{
     vector<vtkIdType> vertexList;
     void constructJoin(vector<size_t>&);   // Construct the join tree.
     void constructSplit(vector<size_t>&);  // Construct the split tree.
-    void mergeJoinSplit(vector<node*>&, vector<node*>&);  // Merge the split and join tree.
+    void mergeJoinSplit();  // Merge the split and join tree.
   
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree

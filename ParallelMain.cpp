@@ -54,10 +54,10 @@ int main ( int argc, char *argv[] )
   printf("Decomposition cost: %lld\n", duration.count());
   
   // Test the domain decomposition and global bridge set
-  for(size_t i = 0; i < regions.size(); i++){
-    printf("region %lu: <%lld, %lld> \n", i, regions[i].front(), regions[i].back());
-  }
-  printf("\n");
+  // for(size_t i = 0; i < regions.size(); i++){
+  //   printf("region %zu: <%lld, %lld> \n", i, regions[i].front(), regions[i].back());
+  // }
+  // printf("\n");
   printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
   // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
   //   printf("<%lld, %lld>\n", (*iter).first, (*iter).second);
@@ -70,11 +70,11 @@ int main ( int argc, char *argv[] )
   //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
   // }
   
-  vector<vtkIdType> allVertices(sgrid->GetNumberOfPoints());
-  iota(allVertices.begin(), allVertices.end(), 0);
-  set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, sgrid);
   // Test the reduced global bridge set
-  printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
+  // vector<vtkIdType> allVertices(sgrid->GetNumberOfPoints());
+  // iota(allVertices.begin(), allVertices.end(), 0);
+  // set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, sgrid);
+  // printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
 
   // OpenMP routine
   vector<vtkIdType> maxima;   // use for maxima query
@@ -91,7 +91,7 @@ int main ( int argc, char *argv[] )
       localMergeTree.build();
       
       // Construct the reduced bridge set
-      set<pair<vtkIdType, vtkIdType>> localBS = getLocalBridgeSet(reducedGlobalBS, regions[tid]);
+      set<pair<vtkIdType, vtkIdType>> localBS = getLocalBridgeSet(globalBridgeSet, regions[tid]);
 
       // Perform queries
       auto start = chrono::high_resolution_clock::now();

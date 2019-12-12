@@ -119,8 +119,11 @@ void decompose(int numThreads, vtkImageData *sgrid, vector<vector<vtkIdType>> &r
       vtkIdList *pointIdList = cellEdge->GetPointIds();
       if(pointIdList->GetId(0)/regionPoints != pointIdList->GetId(1)/regionPoints){
         pair<vtkIdType, vtkIdType> edge(pointIdList->GetId(0), pointIdList->GetId(1));
-        if(scalars[edge.first] > scalars[edge.second]) 
-            swap(edge.first, edge.second);
+        if(scalars[edge.first] > scalars[edge.second]){
+          swap(edge.first, edge.second);
+        }else if(scalars[edge.first] == scalars[edge.second] && edge.first > edge.second){
+          swap(edge.first, edge.second);
+        }
         gBridgeSet.insert(edge);
       }
     }
@@ -131,11 +134,13 @@ void decompose(int numThreads, vtkImageData *sgrid, vector<vector<vtkIdType>> &r
  * Get the local bridge set.
  */
 set<pair<vtkIdType, vtkIdType>> getLocalBridgeSet(const set<pair<vtkIdType, vtkIdType>> &globalBridgeSet, const vector<vtkIdType> &vertexList){
-  // create the local bridge set first
-  set<vtkIdType> vertexSet(vertexList.begin(), vertexList.end());
   set<pair<vtkIdType, vtkIdType>> localBridgeSet;
   for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
-    if(vertexSet.find(iter->first) != vertexSet.end() || vertexSet.find(iter->second) != vertexSet.end()){
+    if(iter->first >= vertexList.front() && iter->first <= vertexList.back()){
+    // if the first vertex is in the region
+      localBridgeSet.insert(*iter);
+    }else if(iter->second >= vertexList.front() && iter->second <= vertexList.back()){
+    // if the second vertex is in the region
       localBridgeSet.insert(*iter);
     }
   }
@@ -152,7 +157,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
   int regionSize = vertexList.size();
   set<pair<vtkIdType, vtkIdType>> reducedBS;
   float *scalars = (float *)getScalar(sgrid);
-  
+
   vector<vtkIdType> component(regionSize, -1);
   vector<vtkIdType> sortedVertices = argsort(vertexList, sgrid, false);
 
@@ -162,7 +167,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
     vector<vtkIdType> neighbors = getConnectedVertices(sortedVertices[i], sgrid, dimension);
     for(vtkIdType &vj : neighbors){
       // upper links
-      if(scalars[vj] > scalars[sortedVertices[i]]){
+      if((scalars[vj] >= scalars[sortedVertices[i]]) || (scalars[vj] == scalars[sortedVertices[i]] && vj > sortedVertices[i])){
         // connect inside region
         pair<vtkIdType, vtkIdType> edge(sortedVertices[i], vj);
         if(bridgeSet.find(edge) == bridgeSet.end()){
@@ -172,7 +177,7 @@ set<pair<vtkIdType, vtkIdType>> getReducedBridgeSet(const set<pair<vtkIdType, vt
     }
     // connect between regions
     for(vtkIdType &vj : neighbors){
-      if(scalars[vj] > scalars[sortedVertices[i]]){
+      if((scalars[vj] >= scalars[sortedVertices[i]]) || (scalars[vj] == scalars[sortedVertices[i]] && vj > sortedVertices[i])){
         if(findSet(component, sortedVertices[i]) != findSet(component, vj)){
           unionSet(component, sortedVertices[i], vj);
           reducedBS.insert(pair<vtkIdType, vtkIdType>(vertexList[i], vj));

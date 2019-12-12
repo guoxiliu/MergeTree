@@ -35,7 +35,7 @@ int MergeTree::build(){
   // printf("Split tree cost: %lld\n", duration.count());
 
   // start = chrono::high_resolution_clock::now();
-  mergeJoinSplit(joinTree, splitTree);
+  mergeJoinSplit();
   // stop = chrono::high_resolution_clock::now();
   // duration = chrono::duration_cast<chrono::microseconds>(stop - start);
   // printf("Merge tree cost: %lld\n", duration.count());
@@ -112,7 +112,7 @@ void MergeTree::constructSplit(vector<size_t>& sortedIndices){
 
 
 // Merge the split and join tree.
-void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree){
+void MergeTree::mergeJoinSplit(){
   
   queue<int> Q;
   mergeTree = vector<node*>(joinTree.size(), nullptr);
@@ -192,17 +192,19 @@ void MergeTree::mergeJoinSplit(vector<node*>& joinTree, vector<node*>& splitTree
 vector<vtkIdType> MergeTree::MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &bridgeSet){
   // collect the higher end vertices from the bridge set
   set<vtkIdType> lowEndVertices;
+  float* scalarData = (float*) getScalar(sgrid);
   for(auto it = bridgeSet.begin(); it != bridgeSet.end(); it++){
     lowEndVertices.insert(it->first);   // the lower end vertex has the smaller scalar value
+    if(scalarData[it->first] == scalarData[it->second])
+      lowEndVertices.insert(it->second);
   }
-  float* scalarData = (float*) getScalar(sgrid);
 
   vector<vtkIdType> maxima;
   //iterate mergeTree to find local maximum
   for(auto node:mergeTree){
-    if(node->children.size() == 0 && scalarData[node->parent->vtkIdx] < scalarData[node->vtkIdx]){
-      if(lowEndVertices.find(node->vtkIdx) == lowEndVertices.end())
-        maxima.push_back(node->vtkIdx);
+    if(node->children.size() == 0 && scalarData[vertexList[node->parent->vtkIdx]] < scalarData[vertexList[node->vtkIdx]]){
+      if(lowEndVertices.find(vertexList[node->vtkIdx]) == lowEndVertices.end())
+        maxima.push_back(vertexList[node->vtkIdx]);
     }
   }
   return maxima;
