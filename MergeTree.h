@@ -5,15 +5,6 @@
 
 using namespace std;
 
-
-// struct superArc{
-//   superArc *parent;
-//   vector<superArc*> children;
-//   list<vtkIdType> vertexList;
-
-//   superArc():parent(nullptr){}
-// };
-
 struct node{
   vtkIdType vtkIdx;
   node *parent;
@@ -32,8 +23,6 @@ class MergeTree{
     MergeTree(vtkImageData*);
     MergeTree(vtkImageData*, vector<vtkIdType>);
     int build();  // Wrap function for compute JT, ST and CT
-    int build(vector<vtkIdType>&);
-
     vector<vtkIdType> MaximaQuery(const set<pair<vtkIdType, vtkIdType>> &);   // return all local maxima in the simplicial complex
     vtkIdType ComponentMaximumQuery(vtkIdType&, float&);  // return vertexId within the superlevel component that has maximum scalar function value
   
@@ -41,12 +30,11 @@ class MergeTree{
     vtkImageData* sgrid;  // Unstructed grid
 
   private:
+    int dimension[3];
     vector<vtkIdType> vertexList;
-    void constructJoin(vector<vtkIdType>&);   // Construct the join tree.
-    void constructSplit(vector<vtkIdType>&);  // Construct the split tree.
-    void mergeJoinSplit(vector<node*>&, vector<node*>&);  // Merge the split and join tree.
-    vector<vtkIdType> getLowerLinks(vtkIdType);
-    vector<vtkIdType> getUpperLinks(vtkIdType);
+    void constructJoin(vector<size_t>&);   // Construct the join tree.
+    void constructSplit(vector<size_t>&);  // Construct the split tree.
+    void mergeJoinSplit();  // Merge the split and join tree.
   
     vector<node*> joinTree;   // Represent the join tree
     vector<node*> splitTree;  // Represent the split tree

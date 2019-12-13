@@ -46,7 +46,7 @@ def numpy_to_vti(array, origin, spacing, filename):
 
 # Read the raw file 
 dir_name = os.path.dirname(os.path.abspath(__file__))
-base_filename = "foot_256x256x256_uint8"
+base_filename = "silicium_98x34x34_uint8"
 filename_suffix = ".raw"
 
 inputfile = os.path.join(dir_name, base_filename + filename_suffix)
@@ -54,7 +54,7 @@ print("Reading from " + inputfile)
 
 # Set arguments for the function
 scalars = np.fromfile(inputfile, dtype='uint8')
-scalars = np.reshape(scalars, (256, 256, 256))
+scalars = np.reshape(scalars, (98, 34, 34))
 
 origin = (0, 0, 0)
 spacing = (1, 1, 1)
@@ -63,4 +63,10 @@ head_filename = base_filename.split('_', 1)[0]
 outfile = os.path.join(dir_name, head_filename + '.vti')
 
 numpy_to_vti(scalars, origin, spacing, outfile)
+
+# toydata = np.random.randint(20, size=(20, 20, 20), dtype='uint8')
+# print(toydata.ravel())
+# outfilename = "toy.vti"
+# numpy_to_vti(toydata, origin, spacing, outfilename)
+
 print("Finished!")

@@ -1,12 +1,9 @@
 #include "MergeTree.h"
-#include <omp.h>
 #include <vtkSmartPointer.h>
 #include <vtkXMLImageDataReader.h>
-#include <chrono>
 
-using namespace std;
 
-const int threadNum = 8;
+const int threadNum = 4;
 
 int main ( int argc, char *argv[] )
 {
@@ -35,20 +32,33 @@ int main ( int argc, char *argv[] )
 
   // Partition the dataset 
   vtkImageData *sgrid = reader->GetOutput();
+
+  // MergeTree globalMergeTree(sgrid);
+  // globalMergeTree.build();
+  // set<pair<vtkIdType, vtkIdType>> emptySet;
+
+  // vector<vtkIdType> maxima = globalMergeTree.MaximaQuery(emptySet);   // use for maxima query
+  // printf("The size of the maxima is %zu\n", maxima.size());
+  // printf("Maxima: [");
+  // for (size_t i = 0; i < maxima.size(); i++) {
+  //   printf(" %lld ", maxima[i]);
+  // }
+  // printf("]\n");
+
   vector<vector<vtkIdType>> regions;
   set<pair<vtkIdType, vtkIdType>> globalBridgeSet;
-
-  // Test merge tree
-  MergeTree testTree(sgrid);
-  testTree.build();
-  // decompose(threadNum, sgrid, regions, globalBridgeSet);
+  auto start = chrono::high_resolution_clock::now();
+  decompose(threadNum, sgrid, regions, globalBridgeSet);
+  auto stop = chrono::high_resolution_clock::now();
+  auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
+  printf("Decomposition cost: %lld\n", duration.count());
   
   // Test the domain decomposition and global bridge set
-  // for(unsigned i = 0; i < regions[0].size(); i++){
-  //   printf("[%lld], ", regions[0][i]);
+  // for(size_t i = 0; i < regions.size(); i++){
+  //   printf("region %zu: <%lld, %lld> \n", i, regions[i].front(), regions[i].back());
   // }
   // printf("\n");
-  // printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
+  printf("Size of global bridge set: %zu\n", globalBridgeSet.size());
   // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
   //   printf("<%lld, %lld>\n", (*iter).first, (*iter).second);
   // }
@@ -60,50 +70,52 @@ int main ( int argc, char *argv[] )
   //   printf("id: %lld, %.3f\n", sortedIndices[i], scalars[sortedIndices[i]]);
   // }
   
+  // Test the reduced global bridge set
   // vector<vtkIdType> allVertices(sgrid->GetNumberOfPoints());
   // iota(allVertices.begin(), allVertices.end(), 0);
   // set<pair<vtkIdType, vtkIdType>> reducedGlobalBS = getReducedBridgeSet(globalBridgeSet, allVertices, sgrid);
-  // Test the reduced global bridge set
   // printf("Size of reduced global bridge set: %zu\n", reducedGlobalBS.size());
-  // for(auto iter = globalBridgeSet.begin(); iter != globalBridgeSet.end(); iter++){
-  //   printf("<%lld, %lld>\n", (*iter).first, (*iter).second);
-  // }
-  
 
+  // OpenMP routine
+  vector<vtkIdType> maxima;   // use for maxima query
+  omp_set_num_threads(threadNum);
+  #pragma omp parallel
+  {
+    unsigned int tid = omp_get_thread_num();
 
-  
-  // // OpenMP routine
-  // vector<vtkIdType> maxima;   // use for maxima query
-  // omp_set_num_threads(threadNum);
-  // #pragma omp parallel
-  // {
-  //   unsigned int tid = omp_get_thread_num();
+    if(tid < regions.size()){
+      // printf("Thread id = %d\n", tid);
 
-  //   if(tid < regions.size()){
-  //     // printf("Thread id = %d\n", tid);
-
-  //     // Construct the local merge tree with the vertex set
-  //     MergeTree localMergeTree(sgrid);
-  //     localMergeTree.build(regions[tid]);
+      // Construct the local merge tree with the vertex set
+      MergeTree localMergeTree(sgrid, regions[tid]);
+      localMergeTree.build();
       
-  //     // Construct the reduced bridge set
-  //     //set<pair<vtkIdType, vtkIdType>> localBridgeSet = getLocalBridgeSet(reducedGlobalBS, regions[tid]);
+      // Construct the reduced bridge set
+      set<pair<vtkIdType, vtkIdType>> localBS = getLocalBridgeSet(globalBridgeSet, regions[tid]);
 
-  //     // Perform queries
-  //     //vector<vtkIdType> regionMaxima = localMergeTree.MaximaQuery(localBridgeSet);
-  //     //maxima.insert(maxima.end(), regionMaxima.begin(), regionMaxima.end());
-  //   }
+      // Perform queries
+      auto start = chrono::high_resolution_clock::now();
+      vector<vtkIdType> regionMaxima = localMergeTree.MaximaQuery(localBS);
+      #pragma omp critical
+        maxima.insert(maxima.end(), regionMaxima.begin(), regionMaxima.end());
+      auto stop = chrono::high_resolution_clock::now();
+      auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
+      printf("Maxima query cost: %lld\n", duration.count());
+    }
 
-  //   // if(tid == 0){
-  //   //   nthreads = omp_get_num_threads();
-  //   //   printf("Number of threads = %d\n", nthreads);
-  //   // }
-  // }
+    // if(tid s== 0){
+    //   nthreads = omp_get_num_threads();
+    //   printf("Number of threads = %d\n", nthreads);
+    // }
+  }
 
-  // printf("The size of the maxima is %zu\n", maxima.size());
-  // for (unsigned int i = 0; i < maxima.size(); i++) {
-  //   printf("maxima[%u]: %lld\n", i, maxima[i]);
-  // }
+  // printf("Build tree cost: %lld\n", duration.count());
+  printf("The size of the maxima is %zu\n", maxima.size());
+  printf("Maxima: [");
+  for (size_t i = 0; i < maxima.size(); i++) {
+    printf(" %lld ", maxima[i]);
+  }
+  printf("]\n");
 
   return 0;
 }
